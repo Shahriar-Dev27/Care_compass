@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#1b5fa8" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0d1319" media="(prefers-color-scheme: dark)" />
+    <meta
+      name="description"
+      content="CareCompass AI helps you describe what is wrong, understand the safe next step, and book a confirmed appointment with the right clinician in minutes."
+    />
+    <title>CareCompass AI — Find the right care, book it in minutes</title>
+    <script>
+      // Applied before first paint so a saved dark theme or larger text does not flash.
+      try {
+        var saved = JSON.parse(localStorage.getItem('carecompass.v1') || '{}')
+        document.documentElement.dataset.theme = saved.prefs?.theme || 'light'
+        document.documentElement.dataset.scale = saved.prefs?.textScale || 'md'
+      } catch (e) {
+        document.documentElement.dataset.theme = 'light'
+      }
+    </script>
+    <script type="module" crossorigin src="/assets/index-eXq8Meix.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-B3OXfVIF.css">
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>

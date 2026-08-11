@@ -1,0 +1,375 @@
+/* ---------- Care assistant flow ---------- */
+
+.assistant-page {
+  padding-block: 32px 70px;
+}
+
+.assistant-shell {
+  display: grid;
+  grid-template-columns: 244px minmax(0, 1fr);
+  gap: clamp(20px, 3vw, 44px);
+  align-items: start;
+}
+
+.assistant-rail {
+  position: sticky;
+  top: calc(var(--header-h) + 24px);
+  display: grid;
+  gap: 20px;
+  padding: 24px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+}
+
+.assistant-rail ol {
+  display: grid;
+  gap: 16px;
+  list-style: none;
+}
+
+.assistant-rail li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 600;
+  font-size: 0.94rem;
+  color: var(--ink-3);
+}
+
+.assistant-rail li span {
+  width: 28px;
+  height: 28px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--line-strong);
+  font-size: 0.82rem;
+}
+
+.assistant-rail li.is-active {
+  color: var(--ink);
+}
+
+.assistant-rail li.is-active span {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: var(--on-brand);
+}
+
+.assistant-rail li.is-done span {
+  background: var(--teal-50);
+  border-color: var(--teal);
+  color: var(--teal-text);
+}
+
+.rail-note {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+  font-size: 0.85rem;
+  color: var(--ink-3);
+}
+
+.rail-note svg {
+  flex: none;
+  color: var(--teal-text);
+}
+
+.assistant-main {
+  display: grid;
+  gap: 16px;
+}
+
+.assistant-card {
+  display: grid;
+  gap: 18px;
+  padding: clamp(24px, 3vw, 36px);
+}
+
+.assistant-card h1 {
+  font-size: clamp(1.6rem, 3vw, 2.15rem);
+}
+
+.assistant-card .btn-lg {
+  justify-self: start;
+}
+
+.field-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.is-listening {
+  --btn-bg: var(--danger-bg);
+  --btn-fg: var(--danger-text);
+  --btn-bd: var(--danger);
+}
+
+.range-ends {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.82rem;
+  color: var(--ink-3);
+}
+
+.assistant-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* ---------- Result ---------- */
+
+.assistant-result {
+  display: grid;
+  gap: 16px;
+}
+
+.level-card {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 26px 28px;
+  border-left: 5px solid var(--brand);
+}
+
+.level-card h1 {
+  font-size: clamp(1.4rem, 2.6vw, 1.9rem);
+  margin-block: 6px 10px;
+}
+
+.level-ok {
+  border-left-color: var(--ok);
+}
+
+.level-brand {
+  border-left-color: var(--brand);
+}
+
+.level-warn {
+  border-left-color: var(--warn);
+  background: var(--warn-bg);
+}
+
+.level-warn .eyebrow {
+  color: var(--warn-text);
+}
+
+.emergency-card {
+  display: grid;
+  gap: 16px;
+  padding: 30px;
+  background: var(--danger-bg);
+  border: 1px solid var(--danger);
+  border-left-width: 5px;
+}
+
+.emergency-icon {
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--r-pill);
+  background: var(--danger);
+  color: #fff;
+}
+
+.emergency-card h1 {
+  color: var(--danger-text);
+}
+
+.emergency-steps {
+  display: grid;
+  gap: 10px;
+  padding-left: 22px;
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.crisis-note {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 14px 16px;
+  border-radius: var(--r-md);
+  background: var(--surface);
+  border: 1px solid var(--danger);
+}
+
+.crisis-note svg {
+  flex: none;
+  color: var(--danger-text);
+  margin-top: 3px;
+}
+
+.emergency-card .btn {
+  justify-self: start;
+}
+
+.guidance-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.guidance-grid section {
+  display: grid;
+  gap: 12px;
+  padding: 24px 26px;
+  align-content: start;
+}
+
+.guidance-grid h2 {
+  font-size: 1.05rem;
+}
+
+.pattern {
+  font-size: 1.12rem;
+  font-weight: 600;
+  color: var(--ink);
+  line-height: 1.35;
+}
+
+.watch-card {
+  display: flex;
+  gap: 16px;
+  padding: 24px 26px;
+  border-left: 5px solid var(--warn);
+}
+
+.watch-card > svg {
+  flex: none;
+  color: var(--warn-text);
+  margin-top: 2px;
+}
+
+.watch-card h2 {
+  font-size: 1.05rem;
+  margin-bottom: 10px;
+}
+
+.watch-card ul {
+  display: grid;
+  gap: 7px;
+  padding-left: 20px;
+  color: var(--ink-2);
+}
+
+.matched-block {
+  display: grid;
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.matched-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-end;
+  justify-content: space-between;
+}
+
+.matched-head h2 {
+  font-size: 1.25rem;
+  margin-top: 8px;
+}
+
+/* ---------- Trust page ---------- */
+
+.trust-page {
+  padding-block: 40px 70px;
+}
+
+.trust-block {
+  padding: clamp(24px, 3vw, 34px);
+  display: grid;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.trust-block h2 {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  font-size: 1.25rem;
+}
+
+.trust-block h2 svg {
+  color: var(--brand-text);
+}
+
+.trust-block h3 {
+  font-size: 1rem;
+  margin-bottom: 12px;
+}
+
+.rule-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 24px;
+}
+
+.faq {
+  display: grid;
+  gap: 18px;
+  margin: 0;
+}
+
+.faq dt {
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 5px;
+}
+
+.faq dd {
+  margin: 0;
+  color: var(--ink-2);
+}
+
+.emergency-block {
+  background: var(--danger-bg);
+  border-color: var(--danger);
+}
+
+.emergency-block h2 svg {
+  color: var(--danger-text);
+}
+
+@media (max-width: 900px) {
+  .assistant-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .assistant-rail {
+    position: static;
+    padding: 18px 20px;
+  }
+
+  .assistant-rail ol {
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+    gap: 8px;
+  }
+
+  .assistant-rail li {
+    flex-direction: column;
+    gap: 6px;
+    text-align: center;
+    font-size: 0.8rem;
+  }
+
+  .rail-note {
+    display: none;
+  }
+}

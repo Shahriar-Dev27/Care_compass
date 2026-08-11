@@ -1,0 +1,660 @@
+/* ---------- Search field ---------- */
+
+.search-field {
+  position: relative;
+  display: grid;
+  gap: 10px;
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-lg);
+  padding: 10px;
+  box-shadow: var(--sh-2);
+}
+
+.search-hero {
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 0.9fr) auto;
+  align-items: center;
+  border-radius: var(--r-pill);
+  padding: 8px 8px 8px 10px;
+}
+
+.search-compact {
+  grid-template-columns: minmax(0, 1fr) auto;
+  border-radius: var(--r-pill);
+  padding: 7px 7px 7px 10px;
+  box-shadow: var(--sh-1);
+}
+
+.search-main {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.search-main > svg {
+  color: var(--ink-3);
+  flex: none;
+}
+
+.search-main input {
+  border: 0;
+  background: transparent;
+  padding: 12px 4px;
+  min-height: 44px;
+  font-size: 1rem;
+}
+
+.search-main input:focus-visible {
+  box-shadow: none;
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: var(--r-sm);
+}
+
+.search-insurance {
+  border-left: 1px solid var(--line);
+  padding-left: 10px;
+}
+
+.search-insurance select {
+  border: 0;
+  background-color: transparent;
+  min-height: 44px;
+}
+
+.search-insurance select:focus-visible {
+  box-shadow: none;
+  outline: 2px solid var(--focus);
+  border-radius: var(--r-sm);
+}
+
+.search-suggest {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  z-index: 40;
+  list-style: none;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  box-shadow: var(--sh-3);
+  overflow: hidden;
+  max-height: 340px;
+  overflow-y: auto;
+}
+
+.search-suggest button {
+  width: 100%;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 16px;
+  background: none;
+  border: 0;
+  text-align: left;
+  color: var(--ink);
+}
+
+.search-suggest button.is-cursor,
+.search-suggest button:hover {
+  background: var(--brand-50);
+}
+
+.search-suggest svg {
+  color: var(--brand-text);
+}
+
+.search-suggest b {
+  display: block;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.search-suggest small {
+  color: var(--ink-3);
+  font-size: 0.82rem;
+}
+
+.search-suggest em {
+  font-style: normal;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+/* ---------- Find layout ---------- */
+
+.find-top {
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+  padding-block: 22px 18px;
+  position: sticky;
+  top: var(--header-h);
+  z-index: 40;
+}
+
+.find-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 14px;
+}
+
+.find-summary p {
+  font-size: 0.95rem;
+}
+
+.find-controls {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.sort-select select {
+  min-height: 38px;
+  padding-block: 6px;
+  border-radius: var(--r-pill);
+  font-size: 0.88rem;
+  font-weight: 600;
+  background-position: calc(100% - 17px) 17px, calc(100% - 11px) 17px;
+}
+
+.find-filter-toggle {
+  display: none;
+}
+
+.find-layout {
+  display: grid;
+  grid-template-columns: 268px minmax(0, 1fr);
+  gap: clamp(20px, 3vw, 40px);
+  padding-block: 28px 60px;
+  align-items: start;
+}
+
+.filter-panel {
+  position: sticky;
+  top: calc(var(--header-h) + 116px);
+  display: grid;
+  gap: 18px;
+  padding: 22px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  max-height: calc(100dvh - var(--header-h) - 140px);
+  overflow-y: auto;
+}
+
+.filter-head {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.filter-panel legend {
+  margin-bottom: 8px;
+}
+
+.filter-panel .chip {
+  min-height: 36px;
+  padding: 0 13px;
+  font-size: 0.85rem;
+}
+
+.filter-scrim {
+  display: none;
+}
+
+.results {
+  display: grid;
+  gap: 16px;
+}
+
+/* ---------- Doctor card ---------- */
+
+.doctor-card {
+  display: grid;
+  gap: 16px;
+  padding: 22px 24px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  box-shadow: var(--sh-1);
+  transition: border-color 0.18s var(--ease), box-shadow 0.18s var(--ease);
+}
+
+.doctor-card:hover {
+  border-color: var(--brand-200);
+  box-shadow: var(--sh-2);
+}
+
+.doctor-top {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: start;
+}
+
+.doctor-id h3 {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+
+.doctor-id h3 a {
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.doctor-id h3 a:hover {
+  color: var(--brand-text);
+  text-decoration: underline;
+}
+
+.verified {
+  color: var(--brand-text);
+  display: inline-flex;
+}
+
+.doctor-meta {
+  font-size: 0.9rem;
+  color: var(--ink-3);
+  margin-block: 3px 6px;
+}
+
+.doctor-fee {
+  text-align: right;
+}
+
+.doctor-fee b {
+  display: block;
+  font-size: 1.24rem;
+  letter-spacing: -0.02em;
+}
+
+.doctor-fee small {
+  color: var(--ink-3);
+  font-size: 0.78rem;
+}
+
+.focus-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  list-style: none;
+}
+
+.doctor-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 22px;
+  font-size: 0.88rem;
+  color: var(--ink-2);
+}
+
+.doctor-facts span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.doctor-facts svg {
+  color: var(--ink-3);
+}
+
+.fact-ok {
+  color: var(--ok-text);
+}
+
+.fact-ok svg {
+  color: var(--ok-text) !important;
+}
+
+.fact-no {
+  color: var(--warn-text);
+}
+
+.fact-no svg {
+  color: var(--warn-text) !important;
+}
+
+.ai-fit {
+  display: grid;
+  gap: 5px;
+  padding: 13px 15px;
+  border-radius: var(--r-md);
+  background: var(--brand-50);
+  border: 1px dashed var(--brand-200);
+  font-size: 0.9rem;
+  color: var(--ink-2);
+}
+
+.doctor-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.slot-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.quick-slots {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+
+.quick-slots .chip {
+  min-height: 34px;
+  padding: 0 12px;
+  font-size: 0.85rem;
+}
+
+.doctor-buttons {
+  display: flex;
+  gap: 9px;
+  margin-left: auto;
+}
+
+/* ---------- Doctor profile ---------- */
+
+.profile-page {
+  padding-block: 26px 70px;
+}
+
+.back-link {
+  margin-bottom: 18px;
+}
+
+.profile-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 344px;
+  gap: clamp(20px, 3vw, 36px);
+  align-items: start;
+}
+
+.profile-main {
+  display: grid;
+  gap: 16px;
+}
+
+.profile-head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 22px;
+  align-items: center;
+  padding: 26px 28px;
+}
+
+.profile-head h1 {
+  font-size: clamp(1.6rem, 3vw, 2.1rem);
+}
+
+.profile-specialty {
+  margin-block: 6px 8px;
+  color: var(--ink-3);
+}
+
+.profile-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  list-style: none;
+  margin-top: 14px;
+}
+
+.profile-block {
+  padding: 26px 28px;
+  display: grid;
+  gap: 16px;
+}
+
+.profile-block h2 {
+  font-size: 1.16rem;
+}
+
+.philosophy {
+  margin: 0;
+  padding-left: 18px;
+  border-left: 3px solid var(--brand-200);
+  font-size: 1.04rem;
+  line-height: 1.6;
+  color: var(--ink);
+}
+
+.cred-list {
+  display: grid;
+  gap: 16px;
+  margin: 0;
+}
+
+.cred-list dt {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 0.88rem;
+  color: var(--ink-3);
+}
+
+.cred-list dt svg {
+  color: var(--brand-text);
+}
+
+.cred-list dd {
+  margin: 4px 0 0 24px;
+  color: var(--ink-2);
+}
+
+.reviews-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.review-list {
+  display: grid;
+  gap: 18px;
+  list-style: none;
+}
+
+.review-list li {
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--line);
+}
+
+.review-list li:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.review-list div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 7px;
+}
+
+.review-list small {
+  color: var(--ink-3);
+  font-size: 0.82rem;
+}
+
+.profile-aside {
+  position: sticky;
+  top: calc(var(--header-h) + 22px);
+}
+
+.booking-aside {
+  display: grid;
+  gap: 16px;
+  padding: 24px;
+}
+
+.aside-price {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.aside-price b {
+  font-size: 1.7rem;
+  letter-spacing: -0.03em;
+}
+
+.aside-price span {
+  font-size: 0.86rem;
+  color: var(--ink-3);
+}
+
+.aside-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--ink);
+}
+
+.aside-label svg {
+  color: var(--teal-text);
+}
+
+.aside-days {
+  display: grid;
+  gap: 12px;
+}
+
+.aside-days > div {
+  display: grid;
+  gap: 7px;
+}
+
+.aside-days b {
+  font-size: 0.85rem;
+  color: var(--ink-3);
+}
+
+.aside-days .chip {
+  min-height: 36px;
+  padding: 0 12px;
+  font-size: 0.86rem;
+}
+
+/* ---------- Responsive ---------- */
+
+@media (max-width: 1080px) {
+  .profile-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-aside {
+    position: static;
+    order: -1;
+  }
+}
+
+@media (max-width: 900px) {
+  .find-top {
+    position: static;
+  }
+
+  .find-filter-toggle {
+    display: inline-flex;
+  }
+
+  .find-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .filter-panel {
+    position: fixed;
+    inset: 0 auto 0 0;
+    z-index: 97;
+    width: min(340px, 88vw);
+    max-height: none;
+    border-radius: 0;
+    transform: translateX(-102%);
+    transition: transform 0.25s var(--ease);
+    box-shadow: var(--sh-3);
+  }
+
+  .filter-panel.is-open {
+    transform: none;
+  }
+
+  .filter-head {
+    display: flex;
+  }
+
+  .filter-scrim {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 96;
+    border: 0;
+    background: rgba(10, 22, 34, 0.45);
+  }
+
+  .search-hero {
+    grid-template-columns: 1fr;
+    border-radius: var(--r-lg);
+    padding: 12px;
+  }
+
+  .search-insurance {
+    border-left: 0;
+    border-top: 1px solid var(--line);
+    padding: 6px 0 0;
+  }
+
+  .search-hero .btn {
+    width: 100%;
+  }
+}
+
+@media (max-width: 620px) {
+  .doctor-top {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .doctor-fee {
+    grid-column: 2;
+    text-align: left;
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+  }
+
+  .doctor-actions,
+  .doctor-buttons {
+    width: 100%;
+  }
+
+  .doctor-buttons .btn {
+    flex: 1;
+  }
+
+  .profile-head {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+}

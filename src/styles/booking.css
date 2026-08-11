@@ -1,0 +1,278 @@
+/* ---------- Booking dialog ---------- */
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  background: rgba(10, 22, 34, 0.55);
+  backdrop-filter: blur(3px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.booking-modal {
+  width: min(560px, 100%);
+  max-height: min(88vh, 820px);
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  box-shadow: var(--sh-3);
+  overflow: hidden;
+}
+
+.booking-modal:focus {
+  outline: none;
+}
+
+.booking-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--line);
+}
+
+.booking-doctor {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  min-width: 0;
+}
+
+.booking-doctor b {
+  display: block;
+  font-size: 1rem;
+}
+
+.booking-doctor small {
+  color: var(--ink-3);
+  font-size: 0.85rem;
+}
+
+.booking-progress {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  padding: 11px 20px;
+  background: var(--brand-50);
+  border-bottom: 1px solid var(--line);
+  font-size: 0.86rem;
+  color: var(--ink-2);
+}
+
+.booking-progress span {
+  font-weight: 700;
+  color: var(--brand-text);
+}
+
+.booking-body {
+  overflow-y: auto;
+  padding: 22px 20px 26px;
+  display: grid;
+  gap: 18px;
+  align-content: start;
+}
+
+.booking-h {
+  font-size: 1.2rem;
+}
+
+.booking-field {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.booking-field legend {
+  padding: 0;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.day-chips {
+  overflow-x: auto;
+  flex-wrap: nowrap;
+  padding-bottom: 4px;
+  scrollbar-width: thin;
+}
+
+.day-chip {
+  flex: none;
+  flex-direction: column;
+  gap: 1px;
+  align-items: flex-start;
+  min-height: 56px;
+  padding-block: 8px;
+}
+
+.day-chip small {
+  font-size: 0.78rem;
+  opacity: 0.8;
+}
+
+.day-chip b {
+  font-size: 0.86rem;
+}
+
+.booking-summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 13px 15px;
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  font-weight: 600;
+  font-size: 0.94rem;
+}
+
+.booking-summary svg {
+  flex: none;
+  color: var(--brand-text);
+}
+
+.booking-summary .link-btn {
+  margin-left: auto;
+}
+
+.booking-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px 20px;
+  border-top: 1px solid var(--line);
+  background: var(--surface);
+  box-shadow: 0 -6px 18px -18px rgba(10, 22, 34, 0.6);
+}
+
+.booking-price {
+  font-size: 0.88rem;
+  color: var(--ink-3);
+}
+
+.booking-price b {
+  font-size: 1.1rem;
+  color: var(--ink);
+}
+
+/* Confirmation */
+
+.booking-done {
+  display: grid;
+  gap: 14px;
+  justify-items: start;
+  padding-block: 6px;
+}
+
+.success-mark {
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--r-pill);
+  background: var(--ok-bg);
+  color: var(--ok-text);
+  border: 1px solid var(--ok);
+}
+
+.booking-done h2 {
+  font-size: 1.45rem;
+}
+
+.confirm-card {
+  display: flex;
+  gap: 13px;
+  width: 100%;
+  padding: 16px 18px;
+  border-radius: var(--r-md);
+  background: var(--brand-50);
+  border: 1px solid var(--brand-200);
+}
+
+.confirm-card svg {
+  flex: none;
+  color: var(--brand-text);
+  margin-top: 3px;
+}
+
+.confirm-card small {
+  display: block;
+  font-size: 0.82rem;
+  color: var(--ink-3);
+}
+
+.confirm-card b {
+  display: block;
+  font-size: 1.05rem;
+  margin-block: 2px 4px;
+}
+
+.confirm-card span {
+  font-size: 0.88rem;
+  color: var(--ink-2);
+}
+
+.booking-done-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  width: 100%;
+  margin-top: 4px;
+}
+
+/* Chat extras that belong with the booking flow */
+
+.chat-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  font-weight: 600;
+  font-size: 0.88rem;
+  color: var(--brand-text);
+}
+
+.bubble-urgent {
+  background: var(--danger-bg);
+  border: 1px solid var(--danger);
+  color: var(--ink);
+}
+
+.bubble-urgent .chat-cta {
+  color: var(--danger-text);
+}
+
+@media (max-width: 560px) {
+  .modal-backdrop {
+    padding: 0;
+    align-items: flex-end;
+  }
+
+  .booking-modal {
+    width: 100%;
+    max-height: 94vh;
+    border-radius: var(--r-lg) var(--r-lg) 0 0;
+    border-bottom: 0;
+  }
+
+  .booking-bar {
+    padding-bottom: calc(14px + env(safe-area-inset-bottom));
+  }
+
+  .booking-bar .btn {
+    flex: 1;
+    justify-content: center;
+  }
+}
