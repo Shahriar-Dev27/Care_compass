@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useReducer } from 'react'
-import { DOCTORS, bySlug } from '../data/directory'
+import { DOCTORS, bySlug, specialtyLabel } from '../data/directory'
 import { dayKey, nextAvailable, slotDate } from './schedule'
 
 const KEY = 'carecompass.v1'
@@ -82,6 +82,9 @@ function seed() {
       },
     ],
     dismissed: [],
+    // Set when the assistant routes someone to emergency care: the clinician it
+    // suggested for afterwards, so nobody has to search again once it is over.
+    followUp: null,
     accessLog: [
       { id: uid(), who: 'You', what: 'Viewed your visit summary', at: new Date(Date.now() - 6 * 3600_000).toISOString() },
       { id: uid(), who: 'Dr. Maya Chen', what: 'Opened your intake notes before the upcoming visit', at: new Date(Date.now() - 2 * DAY_MS).toISOString() },
@@ -140,6 +143,8 @@ function reducer(state, action) {
       return { ...state, activeProfile: action.id }
     case 'dismiss':
       return { ...state, dismissed: [...state.dismissed, action.id] }
+    case 'follow-up':
+      return { ...state, followUp: { ...action.followUp, at: new Date().toISOString() }, dismissed: state.dismissed.filter((id) => id !== 'emergency-followup') }
     case 'pref':
       return { ...state, prefs: { ...state.prefs, [action.key]: action.value } }
     case 'reset':
@@ -204,6 +209,7 @@ export function StoreProvider({ children }) {
       sendMessage: (doctorSlug, text) => dispatch({ type: 'message', doctorSlug, text }),
       switchProfile: (id) => dispatch({ type: 'profile', id }),
       dismiss: (id) => dispatch({ type: 'dismiss', id }),
+      rememberFollowUp: (followUp) => dispatch({ type: 'follow-up', followUp }),
       setPref: (key, value) => dispatch({ type: 'pref', key, value }),
       resetDemo: () => dispatch({ type: 'reset' }),
     }
@@ -221,8 +227,19 @@ export function useStore() {
 /** Gentle, dismissible prompts for the dashboard. Nothing here is diagnostic. */
 export function careSuggestions(store) {
   const out = []
-  const { profile, upcoming, past, dismissed, prefs } = store
+  const { profile, upcoming, past, dismissed, prefs, followUp } = store
   if (!prefs.aiSuggestions) return out
+
+  // Kept whether or not AI suggestions stay on elsewhere in the flow: someone
+  // who was sent to the ER should not have to remember the name themselves.
+  if (followUp && !upcoming.some((a) => a.doctorSlug === followUp.slug)) {
+    out.push({
+      id: 'emergency-followup',
+      title: 'Follow-up care after your emergency',
+      body: `The assistant lined up Dr. ${followUp.name}, ${specialtyLabel(followUp.specialty)}, for after ${followUp.reason}. Book when you are ready.`,
+      action: { label: `See Dr. ${followUp.name.split(' ').pop()}`, to: `/doctor/${followUp.slug}` },
+    })
+  }
 
   const lastPhysical = past.find((a) => /physical|checkup|check-up/i.test(a.reason || ''))
   if (lastPhysical && Date.now() - lastPhysical.date.getTime() > 30 * DAY_MS) {

@@ -1,14 +1,24 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useSearchParams } from 'react-router-dom'
 import { Accessibility, RotateCcw, SearchX, SlidersHorizontal, X } from 'lucide-react'
 import SearchField from '../components/SearchField'
 import DoctorCard from '../components/DoctorCard'
 import BookingModal from '../components/BookingModal'
 import { Empty } from '../components/Bits'
+import Select from '../components/Select'
 import { DEFAULT_FILTERS, searchDoctors, specialtyFor } from '../lib/search'
 import { INSURANCE, LANGUAGES, SPECIALTIES } from '../data/directory'
 import { useStore } from '../lib/store'
-import { useReveal } from '../lib/motion'
+import { lockScroll, useReveal } from '../lib/motion'
+
+// Matches the breakpoint in find.css where the filter panel becomes a fixed
+// drawer. A fixed element inside ScrollSmoother's transformed #smooth-content
+// resolves against that element, not the viewport, so at this width the panel
+// is portalled to <body> (same reason as BookingModal).
+const DRAWER_WIDTH = '(max-width: 900px)'
+
+const Detached = ({ portal, children }) => (portal ? createPortal(children, document.body) : <>{children}</>)
 
 const SORTS = [
   ['best', 'Best match'],
@@ -18,11 +28,37 @@ const SORTS = [
   ['fee', 'Lowest fee'],
 ]
 
+const SORT_OPTIONS = SORTS.map(([value, label]) => ({ value, label }))
+const SPECIALTY_OPTIONS = [
+  { value: '', label: 'Any specialty' },
+  ...SPECIALTIES.map(({ name }) => ({ value: name, label: name })),
+]
+const INSURANCE_OPTIONS = [
+  { value: '', label: 'Any plan' },
+  ...INSURANCE.map((name) => ({ value: name, label: name })),
+]
+const DISTANCE_OPTIONS = [
+  { value: '', label: 'Any distance' },
+  { value: '2', label: 'Within 2 miles' },
+  { value: '5', label: 'Within 5 miles' },
+  { value: '10', label: 'Within 10 miles' },
+]
+const LANGUAGE_OPTIONS = [
+  { value: '', label: 'Any language' },
+  ...LANGUAGES.map((name) => ({ value: name, label: name })),
+]
+const RATING_OPTIONS = [
+  { value: '', label: 'Any rating' },
+  { value: '4.5', label: '4.5 and above' },
+  { value: '4.8', label: '4.8 and above' },
+]
+
 export default function FindCare() {
   const store = useStore()
   const [params, setParams] = useSearchParams()
   const [booking, setBooking] = useState(null)
   const [filtersOpen, setFiltersOpen] = useState(false)
+  const [mobile, setMobile] = useState(() => window.matchMedia(DRAWER_WIDTH).matches)
 
   const q = params.get('q') ?? ''
   const filters = { ...DEFAULT_FILTERS }
@@ -33,6 +69,24 @@ export default function FindCare() {
 
   const results = useMemo(() => searchDoctors(q, filters, store.takenFor), [q, params.toString(), store])
   const scope = useReveal([results.length, params.toString()])
+
+  useEffect(() => {
+    const mq = window.matchMedia(DRAWER_WIDTH)
+    const onChange = (e) => setMobile(e.matches)
+    mq.addEventListener('change', onChange)
+    return () => mq.removeEventListener('change', onChange)
+  }, [])
+
+  useEffect(() => {
+    if (!filtersOpen) return undefined
+    lockScroll(true)
+    const onKey = (e) => e.key === 'Escape' && setFiltersOpen(false)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      lockScroll(false)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [filtersOpen])
 
   const setFilter = (key, value) => {
     const next = new URLSearchParams(params)
@@ -68,23 +122,24 @@ export default function FindCare() {
               <button className="btn btn-quiet btn-sm find-filter-toggle" onClick={() => setFiltersOpen(true)}>
                 <SlidersHorizontal size={16} /> Filters{activeCount ? ` (${activeCount})` : ''}
               </button>
-              <label className="sort-select">
-                <span className="sr-only">Sort results</span>
-                <select value={filters.sort} onChange={(e) => setFilter('sort', e.target.value)}>
-                  {SORTS.map(([value, label]) => (
-                    <option key={value} value={value}>
-                      {label}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <div className="sort-select">
+                <Select
+                  value={filters.sort}
+                  onValueChange={(value) => setFilter('sort', value)}
+                  placeholder="Best match"
+                  options={SORT_OPTIONS}
+                  variant="pill"
+                  ariaLabel="Sort results"
+                />
+              </div>
             </div>
           </div>
         </div>
       </div>
 
       <div className="container find-layout">
-        <aside className={`filter-panel ${filtersOpen ? 'is-open' : ''}`} aria-label="Filter results">
+        <Detached portal={mobile}>
+          <aside className={`filter-panel ${filtersOpen ? 'is-open' : ''}`} aria-label="Filter results">
           <div className="filter-head">
             <b>Filters</b>
             <button className="icon-btn filter-close" onClick={() => setFiltersOpen(false)} aria-label="Close filters">
@@ -94,22 +149,24 @@ export default function FindCare() {
 
           <div className="field">
             <label htmlFor="f-specialty">Specialty</label>
-            <select id="f-specialty" value={filters.specialty} onChange={(e) => setFilter('specialty', e.target.value)}>
-              <option value="">Any specialty</option>
-              {SPECIALTIES.map((s) => (
-                <option key={s.name}>{s.name}</option>
-              ))}
-            </select>
+            <Select
+              id="f-specialty"
+              value={filters.specialty}
+              onValueChange={(value) => setFilter('specialty', value)}
+              placeholder="Any specialty"
+              options={SPECIALTY_OPTIONS}
+            />
           </div>
 
           <div className="field">
             <label htmlFor="f-insurance">Insurance</label>
-            <select id="f-insurance" value={filters.insurance} onChange={(e) => setFilter('insurance', e.target.value)}>
-              <option value="">Any plan</option>
-              {INSURANCE.map((s) => (
-                <option key={s}>{s}</option>
-              ))}
-            </select>
+            <Select
+              id="f-insurance"
+              value={filters.insurance}
+              onValueChange={(value) => setFilter('insurance', value)}
+              placeholder="Any plan"
+              options={INSURANCE_OPTIONS}
+            />
           </div>
 
           <fieldset className="field">
@@ -144,22 +201,24 @@ export default function FindCare() {
 
           <div className="field">
             <label htmlFor="f-distance">Distance</label>
-            <select id="f-distance" value={filters.distance} onChange={(e) => setFilter('distance', e.target.value)}>
-              <option value="">Any distance</option>
-              <option value="2">Within 2 miles</option>
-              <option value="5">Within 5 miles</option>
-              <option value="10">Within 10 miles</option>
-            </select>
+            <Select
+              id="f-distance"
+              value={filters.distance}
+              onValueChange={(value) => setFilter('distance', value)}
+              placeholder="Any distance"
+              options={DISTANCE_OPTIONS}
+            />
           </div>
 
           <div className="field">
             <label htmlFor="f-language">Language spoken</label>
-            <select id="f-language" value={filters.language} onChange={(e) => setFilter('language', e.target.value)}>
-              <option value="">Any language</option>
-              {LANGUAGES.map((s) => (
-                <option key={s}>{s}</option>
-              ))}
-            </select>
+            <Select
+              id="f-language"
+              value={filters.language}
+              onValueChange={(value) => setFilter('language', value)}
+              placeholder="Any language"
+              options={LANGUAGE_OPTIONS}
+            />
           </div>
 
           <fieldset className="field">
@@ -179,11 +238,13 @@ export default function FindCare() {
 
           <div className="field">
             <label htmlFor="f-rating">Minimum rating</label>
-            <select id="f-rating" value={filters.rating} onChange={(e) => setFilter('rating', e.target.value)}>
-              <option value="">Any rating</option>
-              <option value="4.5">4.5 and above</option>
-              <option value="4.8">4.8 and above</option>
-            </select>
+            <Select
+              id="f-rating"
+              value={filters.rating}
+              onValueChange={(value) => setFilter('rating', value)}
+              placeholder="Any rating"
+              options={RATING_OPTIONS}
+            />
           </div>
 
           <label className="checkbox">
@@ -196,9 +257,10 @@ export default function FindCare() {
           <button className="btn btn-ghost btn-sm" onClick={clearAll}>
             <RotateCcw size={15} /> Clear filters
           </button>
-        </aside>
+          </aside>
 
-        {filtersOpen && <button className="filter-scrim" aria-label="Close filters" onClick={() => setFiltersOpen(false)} />}
+          {filtersOpen && <button className="filter-scrim" aria-label="Close filters" onClick={() => setFiltersOpen(false)} />}
+        </Detached>
 
         <div className="results">
           {results.length === 0 ? (

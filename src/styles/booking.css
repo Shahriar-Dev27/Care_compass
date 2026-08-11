@@ -235,13 +235,30 @@
 /* Chat extras that belong with the booking flow */
 
 .chat-cta {
-  display: inline-flex;
+  /* flex, not inline-flex: the link must break onto its own line under the
+     reply text rather than trailing the last sentence. */
+  display: flex;
+  width: fit-content;
   align-items: center;
   gap: 6px;
   margin-top: 8px;
   font-weight: 600;
   font-size: 0.88rem;
   color: var(--brand-text);
+}
+
+.chat-steps {
+  margin: 10px 0 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 7px;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.chat-steps li::marker {
+  font-weight: 700;
+  color: var(--danger-text);
 }
 
 .bubble-urgent {
@@ -252,6 +269,49 @@
 
 .bubble-urgent .chat-cta {
   color: var(--danger-text);
+}
+
+.chat-typing {
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+  padding-block: 14px;
+}
+
+.chat-typing span[aria-hidden] {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ink-3);
+  animation: typing 1.1s var(--ease) infinite;
+}
+
+.chat-typing span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.chat-typing span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes typing {
+  0%,
+  60%,
+  100% {
+    opacity: 0.3;
+    transform: translateY(0);
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(-3px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chat-typing span[aria-hidden] {
+    animation: none;
+    opacity: 0.55;
+  }
 }
 
 @media (max-width: 560px) {

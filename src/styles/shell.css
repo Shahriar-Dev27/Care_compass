@@ -139,6 +139,94 @@
   background: var(--bg-2);
 }
 
+/* Profile dropdown wrapper */
+.header-profile-wrap {
+  position: relative;
+}
+
+.header-profile-wrap .header-profile {
+  cursor: pointer;
+}
+
+/* Dropdown menu */
+.header-profile-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 220px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  box-shadow: var(--sh-3);
+  padding: 6px;
+  z-index: 200;
+  animation: auth-rise 0.18s var(--ease) both;
+}
+
+.header-profile-meta {
+  padding: 10px 12px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.header-profile-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.header-profile-email {
+  font-size: 0.8125rem;
+  color: var(--ink-3);
+  word-break: break-all;
+}
+
+.header-profile-divider {
+  height: 1px;
+  background: var(--line);
+  margin: 4px 0;
+}
+
+.header-profile-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 9px 12px;
+  border-radius: var(--r-sm);
+  font-size: 0.9rem;
+  color: var(--ink-2);
+  text-decoration: none;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background 0.14s, color 0.14s;
+  text-align: left;
+}
+
+.header-profile-item:hover {
+  background: var(--bg-2);
+  color: var(--ink);
+}
+
+.header-profile-signout {
+  color: var(--danger-text);
+}
+
+.header-profile-signout:hover {
+  background: var(--danger-bg);
+  color: var(--danger-text);
+}
+
+/* Sign in button in header */
+.header-signin {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  white-space: nowrap;
+}
+
 .header-profile .avatar {
   --size: 30px;
   font-size: 0.72rem;
@@ -439,6 +527,8 @@
 }
 
 .chat-form input {
+  flex: 1;
+  min-width: 0;
   min-height: 44px;
   border-radius: var(--r-pill);
 }

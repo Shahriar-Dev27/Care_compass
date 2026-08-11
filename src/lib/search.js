@@ -1,4 +1,4 @@
-import { DOCTORS, SPECIALTIES } from '../data/directory'
+import { DOCTORS, SPECIALTIES, specialtyLabel } from '../data/directory'
 import { nextAvailable } from './schedule'
 
 // Plain-language concerns people actually type, mapped to who treats them.
@@ -86,7 +86,7 @@ export function suggest(query, limit = 7) {
     if (hit(name, q)) out.push({ kind: 'Specialty', label: name, hint: blurb, query: name })
   })
   CONCERNS.forEach(([term, specialty]) => {
-    if (hit(term, q)) out.push({ kind: 'Concern', label: term, hint: `Usually handled by ${specialty.toLowerCase()}`, query: term })
+    if (hit(term, q)) out.push({ kind: 'Concern', label: term, hint: `Usually handled by ${specialtyLabel(specialty)}`, query: term })
   })
   DOCTORS.forEach((d) => {
     if (hit(d.name, q) || d.focus.some((f) => hit(f, q))) {

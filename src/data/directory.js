@@ -12,6 +12,9 @@ export const INSURANCE = [
 
 export const LANGUAGES = ['English', 'Spanish', 'Mandarin', 'Bengali', 'Arabic', 'ASL', 'French']
 
+/** Lowercases a specialty for mid-sentence use, but leaves ENT and OB-GYN alone. */
+export const specialtyLabel = (name) => (/[a-z]/.test(name) ? name.toLowerCase() : name)
+
 export const SPECIALTIES = [
   { name: 'Primary care', blurb: 'Checkups, everyday illness, referrals' },
   { name: 'Urgent care', blurb: 'Same-day help for non-emergencies' },
@@ -679,3 +682,13 @@ export const DOCTORS = [
 
 export const bySlug = (slug) => DOCTORS.find((d) => d.slug === slug)
 export const byId = (id) => DOCTORS.find((d) => d.id === id)
+
+/**
+ * Best-rated clinician in a specialty, for follow-up suggestions the assistant
+ * makes by name. Falls back to primary care so it never returns nothing.
+ */
+export function bestIn(specialty) {
+  const pool = DOCTORS.filter((d) => d.specialty === specialty)
+  const list = pool.length ? pool : DOCTORS.filter((d) => d.specialty === 'Primary care')
+  return [...list].sort((a, b) => b.rating - a.rating)[0]
+}

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams, useNavigate } from 'react-router-dom'
+import { useAuth } from '../lib/auth'
 import {
   Activity,
   ArrowRight,
@@ -20,6 +21,7 @@ import {
   Sparkles,
   Trash2,
   Video,
+  LogOut,
   X,
 } from 'lucide-react'
 import { Avatar, AiTag, Empty } from '../components/Bits'
@@ -40,6 +42,8 @@ const when = (iso) =>
 
 export default function CareHome() {
   const store = useStore()
+  const { user, signOut } = useAuth()
+  const navigate = useNavigate()
   const [params, setParams] = useSearchParams()
   const [tab, setTab] = useState('upcoming')
   const [confirmCancel, setConfirmCancel] = useState(null)
@@ -66,7 +70,7 @@ export default function CareHome() {
         <header className="care-head" data-reveal>
           <div>
             <span className="eyebrow">My Care Home</span>
-            <h1>Hello, {store.profile.name.split(' ')[0]}.</h1>
+            <h1>Hello, {(user?.displayName || store.profile.name).split(' ')[0]}.</h1>
           </div>
           <div className="profile-switch" role="group" aria-label="Choose whose care you are viewing">
             {store.profiles.map((p) => (
@@ -482,6 +486,25 @@ export default function CareHome() {
               <p className="muted small">
                 <Check size={13} /> This prototype stores everything in your own browser. Nothing is sent to a server.
               </p>
+            </section>
+
+            <section>
+              <h3>Account</h3>
+              {user && (
+                <p className="muted small" style={{ marginBottom: 12 }}>
+                  Signed in as <strong>{user.email}</strong>
+                </p>
+              )}
+              <button
+                className="btn btn-quiet btn-sm"
+                onClick={async () => {
+                  setPanel(false)
+                  await signOut()
+                  navigate('/')
+                }}
+              >
+                <LogOut size={15} /> Sign out
+              </button>
             </section>
           </aside>
         </div>,

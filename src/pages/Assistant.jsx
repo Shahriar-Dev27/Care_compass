@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AlertTriangle, ArrowRight, Check, ChevronLeft, Mic, Phone, ShieldCheck, Sparkles, Stethoscope } from 'lucide-react'
 import DoctorCard from '../components/DoctorCard'
@@ -6,6 +6,7 @@ import BookingModal from '../components/BookingModal'
 import { AiNote } from '../components/Bits'
 import { DURATIONS, assess, findRedFlags, matchCondition } from '../lib/triage'
 import { searchDoctors, DEFAULT_FILTERS } from '../lib/search'
+import { bestIn, specialtyLabel } from '../data/directory'
 import { useStore } from '../lib/store'
 import { useReveal } from '../lib/motion'
 
@@ -34,6 +35,16 @@ export default function Assistant() {
     if (!result) return []
     return searchDoctors('', { ...DEFAULT_FILTERS, specialty: result.specialty, sort: 'soonest' }, store.takenFor).slice(0, 3)
   }, [result, store])
+
+  // An emergency ends with an ambulance, not a booking — but the visit after it
+  // still has to happen. Naming a clinician now and remembering it means nobody
+  // has to start the search over once they are home.
+  const followUp = useMemo(() => (result?.level === 'emergency' ? bestIn(result.flags[0].followUp) : null), [result])
+
+  useEffect(() => {
+    if (!followUp) return
+    store.rememberFollowUp({ slug: followUp.slug, name: followUp.name, specialty: followUp.specialty, reason: result.flags[0].label })
+  }, [followUp])
 
   const dictate = () => {
     if (listening) {
@@ -191,7 +202,10 @@ export default function Assistant() {
                   <p>{result.reasons[0]} That needs to be assessed in person immediately — not through an online booking.</p>
                   <ol className="emergency-steps">
                     <li>Call your local emergency number (911 in the US) right now.</li>
-                    <li>Do not drive yourself. Stay with someone if you can.</li>
+                    {/* Flag-specific first aid: what genuinely helps in the minutes before help arrives. */}
+                    {result.flags[0].aid.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
                     <li>Tell them exactly what you feel and when it started.</li>
                   </ol>
                   {result.crisis && (
@@ -200,6 +214,18 @@ export default function Assistant() {
                       If you are thinking about harming yourself, call or text <b>988</b> (US Suicide &amp; Crisis Lifeline). Someone is there
                       right now, day or night.
                     </p>
+                  )}
+                  {followUp && (
+                    <div className="followup-note">
+                      <p>
+                        <b>For afterwards:</b> Dr. {followUp.name}, {specialtyLabel(followUp.specialty)} —{' '}
+                        {followUp.focus.slice(0, 2).join(' and ').toLowerCase()}. Saved to My Care Home, so this is waiting for you when the
+                        emergency is over.
+                      </p>
+                      <Link className="link-btn" to={`/doctor/${followUp.slug}`}>
+                        See Dr. {followUp.name} <ArrowRight size={15} />
+                      </Link>
+                    </div>
                   )}
                   <button className="btn btn-quiet" onClick={() => setStep(0)}>
                     <ChevronLeft size={17} /> Review what I wrote
@@ -212,7 +238,7 @@ export default function Assistant() {
                       <span className="eyebrow">Suggested next step</span>
                       <h1>{result.label}</h1>
                       <p>
-                        Start with <b>{result.specialty.toLowerCase()}</b>. {result.reasons.join(' ')}
+                        Start with <b>{specialtyLabel(result.specialty)}</b>. {result.reasons.join(' ')}
                       </p>
                     </div>
                     <button className="btn btn-ghost btn-sm" onClick={() => setStep(1)}>

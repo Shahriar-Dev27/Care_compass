@@ -1,8 +1,9 @@
 import { NavLink, Link, useNavigate } from 'react-router-dom'
-import { CalendarDays, Compass, Home, Moon, Search, Sparkles, Stethoscope, Sun, UserRound } from 'lucide-react'
-import { useState } from 'react'
+import { CalendarDays, Compass, Home, LogIn, LogOut, Moon, Search, Sparkles, Stethoscope, Sun, UserRound } from 'lucide-react'
+import { useState, useRef, useEffect } from 'react'
 import { Avatar } from './Bits'
 import { useStore } from '../lib/store'
+import { useAuth } from '../lib/auth'
 
 function Brand({ onClick }) {
   return (
@@ -14,6 +15,90 @@ function Brand({ onClick }) {
         Care<em>Compass</em>
       </span>
     </Link>
+  )
+}
+
+/* ── Auth-aware profile button in header ────────────────────────────────────── */
+function HeaderProfile() {
+  const { user, signOut } = useAuth()
+  const store = useStore()
+  const navigate = useNavigate()
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    if (!open) return
+    function handler(e) {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [open])
+
+  if (!user) {
+    return (
+      <Link to="/auth" className="btn btn-primary btn-sm header-signin">
+        <LogIn size={16} />
+        Sign in
+      </Link>
+    )
+  }
+
+  const displayName = user.displayName || store.profile.name
+  const initials = displayName
+    .split(' ')
+    .map((w) => w[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase()
+
+  async function handleSignOut() {
+    setOpen(false)
+    await signOut()
+    navigate('/')
+  }
+
+  return (
+    <div className="header-profile-wrap" ref={ref}>
+      <button
+        className="header-profile"
+        onClick={() => setOpen((p) => !p)}
+        aria-expanded={open}
+        aria-haspopup="menu"
+        aria-label="Account menu"
+      >
+        <Avatar name={displayName} initials={initials} tint="var(--brand)" size={30} />
+        <span>{displayName.split(' ')[0]}</span>
+      </button>
+
+      {open && (
+        <div className="header-profile-menu" role="menu" aria-label="Account options">
+          <div className="header-profile-meta">
+            <span className="header-profile-name">{displayName}</span>
+            <span className="header-profile-email">{user.email}</span>
+          </div>
+          <div className="header-profile-divider" role="separator" />
+          <Link
+            to="/care"
+            role="menuitem"
+            className="header-profile-item"
+            onClick={() => setOpen(false)}
+          >
+            <UserRound size={15} />
+            My Care Home
+          </Link>
+          <button
+            role="menuitem"
+            className="header-profile-item header-profile-signout"
+            onClick={handleSignOut}
+          >
+            <LogOut size={15} />
+            Sign out
+          </button>
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -67,10 +152,7 @@ export function Header() {
             {dark ? <Sun size={18} /> : <Moon size={18} />}
           </button>
 
-          <Link to="/care" className="header-profile">
-            <Avatar name={store.profile.name} initials={store.profile.initials} tint="var(--brand)" size={30} />
-            <span>{store.profile.name.split(' ')[0]}</span>
-          </Link>
+          <HeaderProfile />
         </div>
       </div>
     </header>
@@ -86,18 +168,23 @@ const TABS = [
 ]
 
 export function TabBar() {
+  const { user } = useAuth()
   const store = useStore()
   return (
     <nav className="tab-bar" aria-label="Primary">
-      {TABS.map(({ to, label, icon: Icon, end }) => (
-        <NavLink key={label} to={to} end={end} className={({ isActive }) => (isActive ? 'is-active' : '')}>
-          <span style={{ position: 'relative' }}>
-            <Icon size={20} aria-hidden="true" />
-            {label === 'Visits' && store.next && <span className="tab-badge" aria-hidden="true" />}
-          </span>
-          {label}
-        </NavLink>
-      ))}
+      {TABS.map(({ to, label, icon: Icon, end }) => {
+        // Account tab → go to /auth if not signed in
+        const href = label === 'Account' && !user ? '/auth' : to
+        return (
+          <NavLink key={label} to={href} end={end} className={({ isActive }) => (isActive ? 'is-active' : '')}>
+            <span style={{ position: 'relative' }}>
+              <Icon size={20} aria-hidden="true" />
+              {label === 'Visits' && store.next && <span className="tab-badge" aria-hidden="true" />}
+            </span>
+            {label}
+          </NavLink>
+        )
+      })}
     </nav>
   )
 }

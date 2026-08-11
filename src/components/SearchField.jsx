@@ -3,8 +3,13 @@ import { useNavigate } from 'react-router-dom'
 import { Search, Stethoscope, HeartPulse, UserRound } from 'lucide-react'
 import { suggest } from '../lib/search'
 import { INSURANCE } from '../data/directory'
+import Select from './Select'
 
 const KIND_ICON = { Specialty: Stethoscope, Concern: HeartPulse, Doctor: UserRound }
+const INSURANCE_OPTIONS = [
+  { value: '', label: 'All insurance' },
+  ...INSURANCE.map((name) => ({ value: name, label: name })),
+]
 
 /**
  * Free-text search with typo-tolerant autocomplete over specialties, plain
@@ -106,12 +111,13 @@ export default function SearchField({ variant = 'hero', defaultValue = '', insur
           <label htmlFor={`${listId}-ins`} className="sr-only">
             Insurance
           </label>
-          <select id={`${listId}-ins`} value={insurance} onChange={(e) => onInsurance?.(e.target.value)}>
-            <option value="">All insurance</option>
-            {INSURANCE.map((name) => (
-              <option key={name}>{name}</option>
-            ))}
-          </select>
+          <Select
+            id={`${listId}-ins`}
+            value={insurance}
+            onValueChange={onInsurance}
+            placeholder="All insurance"
+            options={INSURANCE_OPTIONS}
+          />
         </div>
       )}
 

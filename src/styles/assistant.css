@@ -217,6 +217,23 @@
   justify-self: start;
 }
 
+/* Secondary on purpose: the follow-up must never compete with the call for help. */
+.followup-note {
+  display: grid;
+  gap: 10px;
+  justify-items: start;
+  padding: 15px 16px;
+  border-radius: var(--r-md);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  font-size: 0.94rem;
+}
+
+.followup-note p {
+  margin: 0;
+  color: var(--ink-2);
+}
+
 .guidance-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));

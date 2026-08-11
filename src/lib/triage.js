@@ -4,23 +4,88 @@
 // ponytail: keyword rules, not a model. Swap `assess()` for a clinically
 // evaluated inference service before this is used with real patients.
 
-const RED_FLAGS = [
-  { re: /chest (pain|pressure|tight|heav)/i, label: 'chest pain or pressure' },
-  { re: /(can.?t|trouble|difficulty|short(ness)? of) breath/i, label: 'trouble breathing' },
-  { re: /(worst|thunderclap).{0,20}headache|sudden.{0,15}(severe|worst).{0,15}headache/i, label: 'a sudden, severe "worst-ever" headache' },
-  { re: /(slurred speech|face droop|weak(ness)? on one side|one side.{0,15}(numb|weak))/i, label: 'stroke warning signs' },
-  { re: /(passed out|fainted|unconscious|unresponsive)/i, label: 'fainting or loss of consciousness' },
-  { re: /(uncontrolled|heavy) bleeding|bleeding (that )?(won.?t|will not) stop/i, label: 'bleeding that will not stop' },
+// Extension is explicit: triage.check.mjs loads this file through plain Node.
+import { specialtyLabel } from '../data/directory.js'
+
+// `aid` is what a layperson can safely do in the minutes before help arrives —
+// positioning, pressure, timing, staying safe. Never medication, never anything
+// that could delay the call for help. `followUp` is the specialty that usually
+// picks the patient up afterwards, so the assistant can name a real clinician
+// once the emergency itself is handled.
+export const RED_FLAGS = [
+  {
+    re: /chest (pain|pressure|tight|heav)/i,
+    label: 'chest pain or pressure',
+    aid: ['Stop and sit down — do not drive yourself anywhere.', 'Unlock the door so help can reach you.', 'Tell the dispatcher when the pain started and what it feels like.'],
+    followUp: 'Cardiology',
+  },
+  {
+    re: /(can.?t|trouble|difficulty|short(ness)? of) breath/i,
+    label: 'trouble breathing',
+    aid: ['Sit upright, lean slightly forward, and loosen anything tight around your chest or neck.', 'Stay still and let someone else move around for you.', 'If you have a rescue inhaler prescribed to you, keep it within reach.'],
+    followUp: 'Primary care',
+  },
+  {
+    re: /(worst|thunderclap).{0,20}headache|sudden.{0,15}(severe|worst).{0,15}headache/i,
+    label: 'a sudden, severe "worst-ever" headache',
+    aid: ['Note the exact minute it started — that detail changes how it is treated.', 'Lie still somewhere quiet and dim while you wait.', 'Do not drive yourself.'],
+    followUp: 'Neurology',
+  },
+  {
+    re: /(slurred speech|face droop|weak(ness)? on one side|one side.{0,15}(numb|weak))/i,
+    label: 'stroke warning signs',
+    aid: ['Write down the time the symptoms started. Treatment depends on it.', 'Do not eat or drink anything.', 'Stay with someone until help arrives.'],
+    followUp: 'Neurology',
+  },
+  {
+    re: /(passed out|fainted|unconscious|unresponsive)/i,
+    label: 'fainting or loss of consciousness',
+    aid: ['Lie down and raise your legs until the lightheadedness passes.', 'Get up slowly, and only with someone next to you.', 'Do not drive.'],
+    followUp: 'Cardiology',
+  },
+  {
+    re: /(uncontrolled|heavy) bleeding|bleeding (that )?(won.?t|will not) stop/i,
+    label: 'bleeding that will not stop',
+    aid: ['Press hard on the wound with a clean cloth and keep pressing.', 'Raise the area above heart level if you can.', 'Do not lift the cloth to check — add another on top.'],
+    followUp: 'Urgent care',
+  },
   {
     re: /(suicid|kill myself|end my life|(hurt|harm)(ing)? myself|self.?harm|want to die|don.?t want to (live|be here))/i,
     label: 'thoughts of self-harm',
     crisis: true,
+    aid: ['Call or text 988 in the US — the Suicide & Crisis Lifeline answers day and night.', 'Ask someone you trust to come to you, or go to where people are.', 'Put anything you could use to hurt yourself out of reach for tonight.'],
+    followUp: 'Mental health',
   },
-  { re: /stiff neck.{0,30}fever|fever.{0,30}stiff neck/i, label: 'fever with a stiff neck' },
-  { re: /seizure|convulsion/i, label: 'a seizure' },
-  { re: /(severe|sudden).{0,20}(abdominal|stomach) pain/i, label: 'sudden severe abdominal pain' },
-  { re: /vision loss|lost (my )?vision|can.?t see/i, label: 'sudden vision loss' },
-  { re: /overdose|poison(ed|ing)/i, label: 'a possible overdose or poisoning' },
+  {
+    re: /stiff neck.{0,30}fever|fever.{0,30}stiff neck/i,
+    label: 'fever with a stiff neck',
+    aid: ['Keep the lights low and stay still.', 'Have someone go with you rather than waiting it out at home.'],
+    followUp: 'Primary care',
+  },
+  {
+    re: /seizure|convulsion/i,
+    label: 'a seizure',
+    aid: ['Move hard objects away and cushion the head. Never hold someone down.', 'Put nothing in their mouth.', 'Time how long it lasts — tell the dispatcher that number.'],
+    followUp: 'Neurology',
+  },
+  {
+    re: /(severe|sudden).{0,20}(abdominal|stomach) pain/i,
+    label: 'sudden severe abdominal pain',
+    aid: ['Do not eat or drink anything until you have been seen.', 'Lie in whatever position hurts least and stay still.'],
+    followUp: 'Gastroenterology',
+  },
+  {
+    re: /vision loss|lost (my )?vision|can.?t see/i,
+    label: 'sudden vision loss',
+    aid: ['Stop driving or using anything with moving parts right now.', 'Do not rub or press the eye.', 'Note when it started and whether it is one eye or both.'],
+    followUp: 'Neurology',
+  },
+  {
+    re: /overdose|poison(ed|ing)/i,
+    label: 'a possible overdose or poisoning',
+    aid: ['Call 911, or Poison Control at 1-800-222-1222 in the US.', 'Keep the container or packaging to show them.', 'Do not make anyone vomit.'],
+    followUp: 'Primary care',
+  },
 ]
 
 // Word boundaries matter here: without them "crushing" matches "shin" and
@@ -283,7 +348,7 @@ export function assess({ text, duration = '', severity = 4, answer = '' }) {
     reasons.push(`This has been going on for ${duration.toLowerCase()}, so a scheduled visit fits better than urgent care.`)
   }
   if (!reasons.length) {
-    reasons.push(`What you described lines up with concerns ${condition.specialty.toLowerCase()} clinicians see regularly.`)
+    reasons.push(`What you described lines up with concerns ${specialtyLabel(condition.specialty)} clinicians see regularly.`)
   }
 
   return {

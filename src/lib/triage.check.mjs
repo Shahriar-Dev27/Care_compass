@@ -3,8 +3,8 @@
 // routing to emergency, and every suggested specialty having a real clinician.
 
 import assert from 'node:assert/strict'
-import { assess, findRedFlags, matchCondition } from './triage.js'
-import { DOCTORS } from '../data/directory.js'
+import { RED_FLAGS, assess, findRedFlags, matchCondition } from './triage.js'
+import { DOCTORS, bestIn, specialtyLabel } from '../data/directory.js'
 
 const emergency = (text) => assess({ text, duration: '1–3 days', severity: 5, answer: '' })
 
@@ -46,5 +46,23 @@ for (const text of [
 }
 
 assert.equal(findRedFlags('routine checkup please').length, 0)
+
+// Every emergency answer must carry first-aid steps and a real clinician to see
+// afterwards — a red flag with either one missing is a dead end at the worst moment.
+for (const flag of RED_FLAGS) {
+  assert.ok(flag.aid?.length, `no first aid for ${flag.label}`)
+  assert.ok(flag.aid.every((step) => typeof step === 'string' && step.trim()), `empty aid step for ${flag.label}`)
+  const doctor = bestIn(flag.followUp)
+  assert.ok(doctor?.slug, `no follow-up clinician for ${flag.label}`)
+  assert.equal(doctor.specialty, flag.followUp, `follow-up for ${flag.label} fell back off ${flag.followUp}`)
+}
+
+// Unknown specialty still returns somebody rather than undefined.
+assert.equal(bestIn('Astrology').specialty, 'Primary care')
+
+// Acronym specialties must survive mid-sentence lowercasing.
+assert.equal(specialtyLabel('ENT'), 'ENT')
+assert.equal(specialtyLabel('OB-GYN'), 'OB-GYN')
+assert.equal(specialtyLabel('Primary care'), 'primary care')
 
 console.log('triage checks passed')

@@ -394,6 +394,10 @@ button {
   font-size: 0.83rem;
 }
 
+/* `input:not([type])` matters: an input with no type attribute behaves as text
+   but is not matched by [type='text'], so it would fall back to Chrome's native
+   2px inset border — glaring against a dark surface — and to intrinsic width. */
+input:not([type]),
 input[type='text'],
 input[type='email'],
 input[type='search'],

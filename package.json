@@ -10,7 +10,9 @@
     "check": "node src/lib/triage.check.mjs"
   },
   "dependencies": {
+    "@radix-ui/react-select": "^2.3.7",
     "@vitejs/plugin-react": "latest",
+    "firebase": "^12.17.1",
     "gsap": "^3.15.0",
     "lucide-react": "^0.468.0",
     "react": "latest",

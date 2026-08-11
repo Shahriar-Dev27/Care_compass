@@ -58,18 +58,6 @@
   padding-left: 10px;
 }
 
-.search-insurance select {
-  border: 0;
-  background-color: transparent;
-  min-height: 44px;
-}
-
-.search-insurance select:focus-visible {
-  box-shadow: none;
-  outline: 2px solid var(--focus);
-  border-radius: var(--r-sm);
-}
-
 .search-suggest {
   position: absolute;
   top: calc(100% + 8px);
@@ -155,15 +143,6 @@
   display: flex;
   gap: 10px;
   align-items: center;
-}
-
-.sort-select select {
-  min-height: 38px;
-  padding-block: 6px;
-  border-radius: var(--r-pill);
-  font-size: 0.88rem;
-  font-weight: 600;
-  background-position: calc(100% - 17px) 17px, calc(100% - 11px) 17px;
 }
 
 .find-filter-toggle {
@@ -467,6 +446,12 @@
   gap: 10px;
   align-items: center;
   justify-content: space-between;
+}
+
+.reviews-head .pill {
+  /* Pills are nowrap by default, but this one is a sentence: on a phone it
+     would set the min-content width of the whole profile column. */
+  white-space: normal;
 }
 
 .review-list {

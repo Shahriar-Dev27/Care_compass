@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { Info, MessageCircle, Send, Sparkles, X } from 'lucide-react'
 import { findRedFlags } from '../lib/triage'
 import { specialtyFor } from '../lib/search'
+import { bestIn, bySlug, specialtyLabel } from '../data/directory'
 import { useStore } from '../lib/store'
 import { formatSlot } from '../lib/schedule'
 
@@ -17,10 +18,15 @@ const QUICK = ['Which doctor should I see?', 'How do I reschedule?', 'Will my in
 function reply(text, store) {
   const flags = findRedFlags(text)
   if (flags.length) {
+    const flag = flags[0]
+    const call = flag.crisis
+      ? 'Call or text 988 in the US to reach the Suicide & Crisis Lifeline, or your local emergency number.'
+      : 'Call your local emergency number — 911 in the US.'
     return {
       from: 'ai',
       urgent: true,
-      text: `You mentioned ${flags[0].label}. That needs emergency care, not an online booking — call your local emergency number (911 in the US) or go to the nearest emergency department now.`,
+      text: `${flag.crisis ? 'Thank you for telling me. You should not have to hold that on your own. ' : ''}You mentioned ${flag.label}, and that needs emergency help now rather than an online booking. ${call} While you wait:`,
+      steps: flag.aid,
     }
   }
 
@@ -66,8 +72,8 @@ function reply(text, store) {
     return {
       from: 'ai',
       ai: true,
-      text: `Based on what you described, ${specialty.toLowerCase()} is usually the right starting point. This is guidance, not a diagnosis — a clinician makes the call.`,
-      cta: { label: `See ${specialty.toLowerCase()} clinicians`, to: `/find?q=${encodeURIComponent(text.slice(0, 60))}` },
+      text: `Based on what you described, ${specialtyLabel(specialty)} is usually the right starting point. This is guidance, not a diagnosis — a clinician makes the call.`,
+      cta: { label: `See ${specialtyLabel(specialty)} clinicians`, to: `/find?q=${encodeURIComponent(text.slice(0, 60))}` },
     }
   }
 
@@ -78,11 +84,55 @@ function reply(text, store) {
   }
 }
 
+/**
+ * Asks the OpenRouter-backed proxy and streams the answer back word by word.
+ * Only what the user typed is sent, plus the name of a clinician this app
+ * already suggested — no profile, appointment or insurance data leaves.
+ */
+async function askModel(log, context, onText) {
+  const res = await fetch('/api/chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      messages: log.map((m) => ({ role: m.from === 'you' ? 'user' : 'assistant', content: m.text })),
+      context,
+    }),
+  })
+  if (!res.ok || !res.body) throw new Error(`chat ${res.status}`)
+
+  const reader = res.body.getReader()
+  const decoder = new TextDecoder()
+  let text = ''
+  for (;;) {
+    const { done, value } = await reader.read()
+    if (done) break
+    text += decoder.decode(value, { stream: true })
+    onText(text)
+  }
+  if (!text.trim()) throw new Error('empty reply')
+  return text.trim()
+}
+
+/** The clinician to see once the emergency itself has been handled. */
+const followUpMessage = (doctor, fresh) => ({
+  from: 'ai',
+  ai: true,
+  text: fresh
+    ? `When you are safe and through the worst of it, Dr. ${doctor.name} handles ${specialtyLabel(doctor.specialty)} follow-ups like this — ${doctor.focus.slice(0, 2).join(' and ').toLowerCase()}. I will keep this here so you do not have to search for it later.`
+    : `Still here from earlier: Dr. ${doctor.name}, ${specialtyLabel(doctor.specialty)}, for your follow-up whenever you are ready.`,
+  cta: { label: `See Dr. ${doctor.name} · ${specialtyLabel(doctor.specialty)}`, to: `/doctor/${doctor.slug}` },
+})
+
+/** Directory context only — never anything about the patient. */
+const clinicianContext = (followUp) =>
+  followUp ? `A clinician has already been suggested to this patient for follow-up: Dr. ${followUp.name}, ${specialtyLabel(followUp.specialty)}. Refer to them by name if the patient asks who to see.` : ''
+
 export default function ChatAssistant() {
   const store = useStore()
   const [open, setOpen] = useState(false)
   const [log, setLog] = useState([GREETING])
   const [draft, setDraft] = useState('')
+  const [pending, setPending] = useState(false)
   const logRef = useRef(null)
   const panel = useRef(null)
 
@@ -98,11 +148,47 @@ export default function ChatAssistant() {
     return () => document.removeEventListener('keydown', onKey)
   }, [open])
 
-  const send = (text) => {
+  // Reopening after an emergency: bring the remembered clinician back up front
+  // instead of making someone scroll or search for the name again.
+  useEffect(() => {
+    const doctor = store.followUp && bySlug(store.followUp.slug)
+    setLog((current) => (doctor && current.length === 1 ? [...current, followUpMessage(doctor, false)] : current))
+  }, [store.followUp])
+
+  const send = async (text) => {
     const value = text.trim()
-    if (!value) return
+    if (!value || pending) return
     setDraft('')
-    setLog((l) => [...l, { from: 'you', text: value }, reply(value, store)])
+    const local = reply(value, store)
+    const history = [...log, { from: 'you', text: value }]
+    setLog(history)
+
+    // Red flags are answered by the rules, never by a model — emergency
+    // routing must not depend on a network call or on what a model decides.
+    if (local.urgent) {
+      const flag = findRedFlags(value)[0]
+      const doctor = bestIn(flag.followUp)
+      // Remembered in the store, so the name is still here after the emergency
+      // is over — in this panel and on the My Care Home dashboard.
+      store.rememberFollowUp({ slug: doctor.slug, name: doctor.name, specialty: doctor.specialty, reason: flag.label })
+      setLog([...history, local, followUpMessage(doctor, true)])
+      return
+    }
+
+    setPending(true)
+    const placeholder = { from: 'ai', ai: true, text: '', streaming: true }
+    setLog([...history, placeholder])
+    try {
+      const answer = await askModel(history, clinicianContext(store.followUp), (partial) =>
+        setLog([...history, { ...placeholder, text: partial }]),
+      )
+      // The CTA still comes from the rules, so every link is one we control.
+      setLog([...history, { from: 'ai', ai: true, text: answer, cta: local.cta }])
+    } catch {
+      setLog([...history, local])
+    } finally {
+      setPending(false)
+    }
   }
 
   if (!open) {
@@ -132,7 +218,23 @@ export default function ChatAssistant() {
       <div className="chat-log" ref={logRef} role="log" aria-live="polite">
         {log.map((m, i) => (
           <div key={i} className={m.from === 'you' ? 'bubble bubble-you' : `bubble bubble-ai${m.urgent ? ' bubble-urgent' : ''}`}>
-            {m.text}
+            {m.streaming && !m.text ? (
+              <span className="chat-typing">
+                <span aria-hidden="true" />
+                <span aria-hidden="true" />
+                <span aria-hidden="true" />
+                <span className="sr-only">Assistant is typing</span>
+              </span>
+            ) : (
+              m.text
+            )}
+            {m.steps && (
+              <ol className="chat-steps">
+                {m.steps.map((step) => (
+                  <li key={step}>{step}</li>
+                ))}
+              </ol>
+            )}
             {m.cta && (
               <Link className="chat-cta" to={m.cta.to} onClick={() => setOpen(false)}>
                 {m.cta.label} →
@@ -143,16 +245,21 @@ export default function ChatAssistant() {
       </div>
 
       <div>
-        <div className="chat-quick">
-          {QUICK.map((q) => (
-            <button key={q} type="button" onClick={() => send(q)}>
-              {q}
-            </button>
-          ))}
-        </div>
+        {/* Openers only: once the conversation starts they take room the log
+            needs, which is most of the panel on a phone. */}
+        {!log.some((m) => m.from === 'you') && (
+          <div className="chat-quick">
+            {QUICK.map((q) => (
+              <button key={q} type="button" onClick={() => send(q)} disabled={pending}>
+                {q}
+              </button>
+            ))}
+          </div>
+        )}
         <p className="chat-disclaimer">
           <Info size={14} aria-hidden="true" />
-          AI guidance, never a diagnosis. In an emergency, call your local emergency number.
+          AI guidance, never a diagnosis. What you type here is sent to an AI provider — your records and appointments are not. In an
+          emergency, call your local emergency number.
         </p>
         <form
           className="chat-form"
@@ -165,7 +272,7 @@ export default function ChatAssistant() {
             Message the assistant
           </label>
           <input id="chat-input" value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="Type your question" autoComplete="off" />
-          <button className="icon-btn" type="submit" aria-label="Send message">
+          <button className="icon-btn" type="submit" aria-label="Send message" disabled={pending}>
             <Send size={18} />
           </button>
         </form>

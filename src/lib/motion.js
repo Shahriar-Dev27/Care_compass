@@ -11,7 +11,7 @@ export const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: r
  * GSAP ScrollSmoother on the page shell. Fixed UI (header, chat launcher,
  * modals) must live outside #smooth-content or it will scroll with the page.
  */
-export function useSmoothScroll(pathname) {
+export function useSmoothScroll(pathname, hash = '') {
   const smoother = useRef(null)
 
   useLayoutEffect(() => {
@@ -33,12 +33,27 @@ export function useSmoothScroll(pathname) {
     }
   }, [])
 
-  // New route: start at the top and re-measure every trigger.
+  // New route: start at the top and re-measure every trigger. A hash needs the
+  // smoother's own scrollTo — the browser's native anchor jump moves the page
+  // without moving the smoother, which leaves every reveal below it stuck at
+  // opacity 0.
   useLayoutEffect(() => {
+    // The browser's native anchor jump can scroll #smooth-wrapper even though
+    // it is overflow:hidden, which desynchronises it from the smoother.
+    const wrapper = document.querySelector('#smooth-wrapper')
+    if (wrapper) wrapper.scrollTop = 0
     if (smoother.current) smoother.current.scrollTo(0, false)
     else window.scrollTo(0, 0)
     ScrollTrigger.refresh()
-  }, [pathname])
+    if (!hash) return undefined
+    // One frame later, so the new route has laid out and its own reveals have
+    // registered; re-measure once more before jumping or the target overshoots.
+    const id = requestAnimationFrame(() => {
+      ScrollTrigger.refresh()
+      scrollToId(hash)
+    })
+    return () => cancelAnimationFrame(id)
+  }, [pathname, hash])
 }
 
 /** Freeze page scrolling while a dialog is open. */
@@ -48,13 +63,21 @@ export function lockScroll(locked) {
   document.body.classList.toggle('is-locked', locked)
 }
 
-/** Scroll to an element by selector, through the smoother when it is active. */
-export function scrollToId(selector, offset = -84) {
+/**
+ * Scroll to an element by selector, through the smoother when it is active.
+ * `offset` is how far below the viewport top the element should land — enough
+ * to clear the sticky header (72px) and still show some space above it.
+ */
+export function scrollToId(selector, offset = 96) {
   const target = document.querySelector(selector)
   if (!target) return
   const smoother = ScrollSmoother.get()
-  if (smoother) smoother.scrollTo(target, true, `top ${offset}px`)
-  else target.scrollIntoView({ behavior: reducedMotion() ? 'auto' : 'smooth', block: 'start' })
+  if (smoother) {
+    smoother.scrollTo(target, true, `top ${offset}px`)
+    return
+  }
+  const top = target.getBoundingClientRect().top + window.scrollY - offset
+  window.scrollTo({ top, behavior: reducedMotion() ? 'auto' : 'smooth' })
 }
 
 /**
