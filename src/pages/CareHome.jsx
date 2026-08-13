@@ -37,6 +37,18 @@ const TABS = [
   ['waitlist', 'Waitlisted'],
 ]
 
+/** Snapshot lists start empty on a new account, so say so rather than show a gap. */
+function RecordList({ items, empty }) {
+  if (!items.length) return <p className="muted small">{empty}</p>
+  return (
+    <ul>
+      {items.map((item) => (
+        <li key={item}>{item}</li>
+      ))}
+    </ul>
+  )
+}
+
 const when = (iso) =>
   new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }).format(new Date(iso))
 
@@ -64,6 +76,19 @@ export default function CareHome() {
   const joinable = next && new Date(next.at).getTime() - Date.now() < 15 * 60000
   const messageCount = store.threads.reduce((n, t) => n + t.messages.length, 0)
 
+  // Care data arrives from Supabase after the session does, and everything
+  // below reads the active patient profile.
+  if (store.loading || !store.profile) {
+    return (
+      <div className="auth-loading" aria-live="polite">
+        <span className="auth-loading-icon">
+          <ShieldCheck size={28} />
+        </span>
+        <span className="auth-loading-text">{store.error ? store.error : 'Loading your care record…'}</span>
+      </div>
+    )
+  }
+
   return (
     <div ref={scope} className="care-page">
       <div className="container">
@@ -71,6 +96,11 @@ export default function CareHome() {
           <div>
             <span className="eyebrow">My Care Home</span>
             <h1>Hello, {(user?.displayName || store.profile.name).split(' ')[0]}.</h1>
+            {store.error && (
+              <p className="error-text" role="alert">
+                {store.error}
+              </p>
+            )}
           </div>
           <div className="profile-switch" role="group" aria-label="Choose whose care you are viewing">
             {store.profiles.map((p) => (
@@ -369,27 +399,15 @@ export default function CareHome() {
                 <h3>
                   <Pill size={16} aria-hidden="true" /> Medications
                 </h3>
-                <ul>
-                  {store.profile.medications.map((m) => (
-                    <li key={m}>{m}</li>
-                  ))}
-                </ul>
+                <RecordList items={store.profile.medications} empty="No medications recorded yet." />
               </div>
               <div>
                 <h3>Allergies</h3>
-                <ul>
-                  {store.profile.allergies.map((a) => (
-                    <li key={a}>{a}</li>
-                  ))}
-                </ul>
+                <RecordList items={store.profile.allergies} empty="No allergies recorded yet." />
               </div>
               <div>
                 <h3>Ongoing</h3>
-                <ul>
-                  {store.profile.conditions.map((c) => (
-                    <li key={c}>{c}</li>
-                  ))}
-                </ul>
+                <RecordList items={store.profile.conditions} empty="Nothing ongoing recorded yet." />
               </div>
             </div>
             <p className="muted small">
@@ -451,15 +469,19 @@ export default function CareHome() {
               <h3>
                 <Eye size={16} aria-hidden="true" /> Who has accessed your record
               </h3>
-              <ul className="access-log">
-                {store.accessLog.map((entry) => (
-                  <li key={entry.id}>
-                    <b>{entry.who}</b>
-                    <span>{entry.what}</span>
-                    <small>{when(entry.at)}</small>
-                  </li>
-                ))}
-              </ul>
+              {store.accessLog.length === 0 ? (
+                <p className="muted small">Nothing yet. Booking or changing a visit is recorded here.</p>
+              ) : (
+                <ul className="access-log">
+                  {store.accessLog.map((entry) => (
+                    <li key={entry.id}>
+                      <b>{entry.who}</b>
+                      <span>{entry.what}</span>
+                      <small>{when(entry.at)}</small>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </section>
 
             <section>
@@ -479,12 +501,12 @@ export default function CareHome() {
                 >
                   Export my data
                 </button>
-                <button className="btn btn-danger btn-sm" onClick={store.resetDemo}>
-                  <Trash2 size={15} /> Delete demo data
+                <button className="btn btn-danger btn-sm" onClick={store.clearMyData}>
+                  <Trash2 size={15} /> Delete my care data
                 </button>
               </div>
               <p className="muted small">
-                <Check size={13} /> This prototype stores everything in your own browser. Nothing is sent to a server.
+                <Check size={13} /> Your record lives in the CareCompass database and is readable only by your signed-in account.
               </p>
             </section>
 

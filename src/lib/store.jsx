@@ -1,165 +1,141 @@
-import { createContext, useContext, useEffect, useMemo, useReducer } from 'react'
-import { DOCTORS, bySlug, specialtyLabel } from '../data/directory'
-import { dayKey, nextAvailable, slotDate } from './schedule'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
+import { bySlug, specialtyLabel } from '../data/directory'
+import { dayKey, slotDate } from './schedule'
+import { supabase } from './supabase'
+import { useAuth } from './auth'
+import {
+  DEFAULT_PREFS,
+  prefsToRow,
+  slotKey,
+  toAppointment,
+  toLogEntry,
+  toMessage,
+  toPrefs,
+  toProfile,
+  toThreads,
+  toWaitlistEntry,
+} from './rows'
 
-const KEY = 'carecompass.v1'
+const LOCAL_KEY = 'carecompass.prefs.v2'
 const DAY_MS = 86_400_000
 
 const Ctx = createContext(null)
 
-const uid = () => Math.random().toString(36).slice(2, 10)
-
-function seed() {
-  const past = new Date(Date.now() - 47 * DAY_MS)
-  past.setHours(10, 30, 0, 0)
-  const firstOpen = nextAvailable(DOCTORS[0])
-  const upcoming = firstOpen ? firstOpen.at : new Date(Date.now() + 3 * DAY_MS)
-
-  return {
-    activeProfile: 'me',
-    profiles: [
-      {
-        id: 'me',
-        name: 'Jordan Lee',
-        initials: 'JL',
-        relation: 'You',
-        dob: '1989-04-17',
-        insurance: 'Blue Cross Blue Shield',
-        memberId: 'BCB-••••-4821',
-        medications: ['Sumatriptan 50mg, as needed', 'Vitamin D 1000 IU, daily'],
-        allergies: ['Penicillin — rash'],
-        conditions: ['Episodic migraine'],
-      },
-      {
-        id: 'ari',
-        name: 'Ari Lee',
-        initials: 'AL',
-        relation: 'Child, age 8',
-        dob: '2017-09-02',
-        insurance: 'Blue Cross Blue Shield',
-        memberId: 'BCB-••••-4822',
-        medications: ['Albuterol inhaler, as needed'],
-        allergies: ['None recorded'],
-        conditions: ['Mild asthma'],
-      },
-    ],
-    appointments: [
-      {
-        id: uid(),
-        profileId: 'me',
-        doctorSlug: 'maya-chen',
-        at: upcoming.toISOString(),
-        mode: 'video',
-        reason: 'Follow-up on recurring headaches',
-        status: 'booked',
-        createdAt: new Date().toISOString(),
-      },
-      {
-        id: uid(),
-        profileId: 'me',
-        doctorSlug: 'maya-chen',
-        at: past.toISOString(),
-        mode: 'in-person',
-        reason: 'Annual physical',
-        status: 'booked',
-        summary:
-          'Blood pressure 118/76. Discussed headache frequency and sleep. Continue current plan, recheck in one year, keep a headache diary.',
-        createdAt: new Date(past.getTime() - 5 * DAY_MS).toISOString(),
-      },
-    ],
-    waitlist: [],
-    threads: [
-      {
-        doctorSlug: 'maya-chen',
-        messages: [
-          {
-            id: uid(),
-            from: 'care-team',
-            at: new Date(Date.now() - 2 * DAY_MS).toISOString(),
-            text: 'Your headache diary came through — thank you. Bring it to the video visit and we will look at the pattern together.',
-          },
-        ],
-      },
-    ],
-    dismissed: [],
-    // Set when the assistant routes someone to emergency care: the clinician it
-    // suggested for afterwards, so nobody has to search again once it is over.
-    followUp: null,
-    accessLog: [
-      { id: uid(), who: 'You', what: 'Viewed your visit summary', at: new Date(Date.now() - 6 * 3600_000).toISOString() },
-      { id: uid(), who: 'Dr. Maya Chen', what: 'Opened your intake notes before the upcoming visit', at: new Date(Date.now() - 2 * DAY_MS).toISOString() },
-      { id: uid(), who: 'Riverside Family Health billing', what: 'Verified insurance eligibility', at: new Date(Date.now() - 9 * DAY_MS).toISOString() },
-    ],
-    prefs: {
-      theme: 'light',
-      textScale: 'base',
-      reminderSms: true,
-      reminderEmail: true,
-      reminderPush: false,
-      aiSuggestions: true,
-    },
-  }
+const EMPTY = {
+  profiles: [],
+  appointments: [],
+  messages: [],
+  waitlist: [],
+  accessLog: [],
+  bookedSlots: [],
+  activeProfileId: null,
 }
 
-function load() {
+/** Theme, text size and dismissals are useful before anyone signs in, so they
+ *  are cached locally and written through to the account once there is one. */
+function readLocalPrefs() {
   try {
-    const raw = localStorage.getItem(KEY)
-    if (!raw) return seed()
-    const saved = JSON.parse(raw)
-    return { ...seed(), ...saved, prefs: { ...seed().prefs, ...saved.prefs } }
+    const saved = JSON.parse(localStorage.getItem(LOCAL_KEY) || '{}')
+    return {
+      prefs: { ...DEFAULT_PREFS, ...saved.prefs },
+      dismissed: saved.dismissed ?? [],
+      followUp: saved.followUp ?? null,
+    }
   } catch {
-    return seed()
+    return { prefs: { ...DEFAULT_PREFS }, dismissed: [], followUp: null }
   }
 }
 
-function reducer(state, action) {
-  switch (action.type) {
-    case 'book':
-      return { ...state, appointments: [...state.appointments, { id: uid(), status: 'booked', createdAt: new Date().toISOString(), ...action.appointment }] }
-    case 'reschedule':
-      return {
-        ...state,
-        appointments: state.appointments.map((a) => (a.id === action.id ? { ...a, at: action.at, mode: action.mode ?? a.mode } : a)),
-      }
-    case 'cancel':
-      return { ...state, appointments: state.appointments.map((a) => (a.id === action.id ? { ...a, status: 'cancelled' } : a)) }
-    case 'waitlist':
-      return state.waitlist.some((w) => w.doctorSlug === action.doctorSlug && w.profileId === state.activeProfile)
-        ? state
-        : { ...state, waitlist: [...state.waitlist, { id: uid(), doctorSlug: action.doctorSlug, profileId: state.activeProfile, at: new Date().toISOString() }] }
-    case 'unwaitlist':
-      return { ...state, waitlist: state.waitlist.filter((w) => w.id !== action.id) }
-    case 'message': {
-      const exists = state.threads.some((t) => t.doctorSlug === action.doctorSlug)
-      const message = { id: uid(), from: 'you', at: new Date().toISOString(), text: action.text }
-      return {
-        ...state,
-        threads: exists
-          ? state.threads.map((t) => (t.doctorSlug === action.doctorSlug ? { ...t, messages: [...t.messages, message] } : t))
-          : [...state.threads, { doctorSlug: action.doctorSlug, messages: [message] }],
-      }
-    }
-    case 'profile':
-      return { ...state, activeProfile: action.id }
-    case 'dismiss':
-      return { ...state, dismissed: [...state.dismissed, action.id] }
-    case 'follow-up':
-      return { ...state, followUp: { ...action.followUp, at: new Date().toISOString() }, dismissed: state.dismissed.filter((id) => id !== 'emergency-followup') }
-    case 'pref':
-      return { ...state, prefs: { ...state.prefs, [action.key]: action.value } }
-    case 'reset':
-      return seed()
-    default:
-      return state
+function writeLocalPrefs({ prefs, dismissed, followUp }) {
+  try {
+    localStorage.setItem(LOCAL_KEY, JSON.stringify({ prefs, dismissed, followUp }))
+  } catch {
+    // Private browsing with storage blocked: preferences just will not persist.
   }
 }
+
+const firstError = (...results) => results.find((r) => r?.error)?.error ?? null
+
+const friendlyWriteError = (error) =>
+  error.code === '23505'
+    ? 'That time was just booked by someone else. Please pick another slot.'
+    : error.message || 'Something went wrong. Please try again.'
 
 export function StoreProvider({ children }) {
-  const [state, dispatch] = useReducer(reducer, null, load)
+  const { user, loading: authLoading } = useAuth()
+  const navigate = useNavigate()
+  const location = useLocation()
+  const [state, setState] = useState(() => ({ ...EMPTY, ...readLocalPrefs(), loading: true, error: null }))
+
+  const patch = useCallback((changes) => setState((prev) => ({ ...prev, ...changes })), [])
+
+  /** Slots taken across every patient, so the picker cannot offer one twice. */
+  const loadBookedSlots = useCallback(async () => {
+    const { data, error } = await supabase.rpc('booked_slots')
+    return { slots: (data ?? []).map((row) => ({ doctorSlug: row.doctor_slug, key: slotKey(row.at) })), error }
+  }, [])
+
+  const loadAccessLog = useCallback(async () => {
+    const { data } = await supabase.from('access_log').select('*').order('at', { ascending: false }).limit(50)
+    if (data) patch({ accessLog: data.map(toLogEntry) })
+  }, [patch])
 
   useEffect(() => {
-    localStorage.setItem(KEY, JSON.stringify(state))
-  }, [state])
+    if (authLoading) return
+    let alive = true
+
+    async function load() {
+      patch({ loading: true, error: null })
+
+      if (!user) {
+        const { slots, error } = await loadBookedSlots()
+        if (!alive) return
+        setState((prev) => ({ ...prev, ...EMPTY, ...readLocalPrefs(), bookedSlots: slots, loading: false, error: error?.message ?? null }))
+        return
+      }
+
+      const [slotRes, profileRes, apptRes, waitRes, msgRes, logRes, prefRes] = await Promise.all([
+        loadBookedSlots(),
+        supabase.from('patient_profiles').select('*').order('is_self', { ascending: false }).order('created_at'),
+        supabase.from('appointments').select('*').order('at'),
+        supabase.from('waitlist').select('*').order('created_at'),
+        supabase.from('messages').select('*').order('created_at'),
+        supabase.from('access_log').select('*').order('at', { ascending: false }).limit(50),
+        supabase.from('user_prefs').select('*').maybeSingle(),
+      ])
+      if (!alive) return
+
+      const error = firstError(slotRes, profileRes, apptRes, waitRes, msgRes, logRes, prefRes)
+      const local = readLocalPrefs()
+      const prefRow = prefRes.data
+
+      setState((prev) => ({
+        ...prev,
+        profiles: (profileRes.data ?? []).map(toProfile),
+        appointments: (apptRes.data ?? []).map(toAppointment),
+        waitlist: (waitRes.data ?? []).map(toWaitlistEntry),
+        messages: (msgRes.data ?? []).map(toMessage),
+        accessLog: (logRes.data ?? []).map(toLogEntry),
+        bookedSlots: slotRes.slots,
+        activeProfileId: prefRow?.active_profile_id ?? profileRes.data?.[0]?.id ?? null,
+        prefs: prefRow ? toPrefs(prefRow) : local.prefs,
+        dismissed: prefRow?.dismissed ?? local.dismissed,
+        followUp: prefRow?.follow_up ?? local.followUp,
+        loading: false,
+        error: error ? error.message : null,
+      }))
+    }
+
+    load()
+    return () => {
+      alive = false
+    }
+  }, [user, authLoading, loadBookedSlots, patch])
+
+  useEffect(() => {
+    writeLocalPrefs({ prefs: state.prefs, dismissed: state.dismissed, followUp: state.followUp })
+  }, [state.prefs, state.dismissed, state.followUp])
 
   useEffect(() => {
     const root = document.documentElement
@@ -168,8 +144,8 @@ export function StoreProvider({ children }) {
   }, [state.prefs.theme, state.prefs.textScale])
 
   const value = useMemo(() => {
-    const profile = state.profiles.find((p) => p.id === state.activeProfile) || state.profiles[0]
-    const mine = state.appointments.filter((a) => a.profileId === profile.id)
+    const profile = state.profiles.find((p) => p.id === state.activeProfileId) ?? state.profiles[0] ?? null
+    const mine = profile ? state.appointments.filter((a) => a.profileId === profile.id) : []
     const now = Date.now()
     const withDoctor = (a) => ({ ...a, doctor: bySlug(a.doctorSlug), date: new Date(a.at) })
 
@@ -183,16 +159,25 @@ export function StoreProvider({ children }) {
       .map(withDoctor)
       .sort((a, b) => b.date - a.date)
 
-    /** Slots already booked with a doctor, so the picker can never double-book. */
-    const takenFor = (doctorSlug) =>
-      new Set(
-        state.appointments
-          .filter((a) => a.doctorSlug === doctorSlug && a.status === 'booked')
-          .map((a) => {
-            const d = new Date(a.at)
-            return `${dayKey(d)}T${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
-          }),
-      )
+    /** Anything needing a record of its own sends you to sign in first. */
+    const requireAuth = () => {
+      if (user) return true
+      navigate(`/auth?next=${encodeURIComponent(location.pathname + location.search)}`)
+      return false
+    }
+
+    const savePrefRow = async (row) => {
+      if (!user) return
+      const { error } = await supabase.from('user_prefs').upsert({ user_id: user.id, ...row })
+      if (error) patch({ error: error.message })
+    }
+
+    /** Reports a failed write both in place and in the account-wide banner. */
+    const fail = (error) => {
+      const message = friendlyWriteError(error)
+      patch({ error: message })
+      return { error: message }
+    }
 
     return {
       ...state,
@@ -200,20 +185,152 @@ export function StoreProvider({ children }) {
       upcoming,
       past,
       next: upcoming[0] || null,
-      takenFor,
-      book: (appointment) => dispatch({ type: 'book', appointment: { profileId: profile.id, ...appointment } }),
-      reschedule: (id, at, mode) => dispatch({ type: 'reschedule', id, at, mode }),
-      cancel: (id) => dispatch({ type: 'cancel', id }),
-      joinWaitlist: (doctorSlug) => dispatch({ type: 'waitlist', doctorSlug }),
-      leaveWaitlist: (id) => dispatch({ type: 'unwaitlist', id }),
-      sendMessage: (doctorSlug, text) => dispatch({ type: 'message', doctorSlug, text }),
-      switchProfile: (id) => dispatch({ type: 'profile', id }),
-      dismiss: (id) => dispatch({ type: 'dismiss', id }),
-      rememberFollowUp: (followUp) => dispatch({ type: 'follow-up', followUp }),
-      setPref: (key, value) => dispatch({ type: 'pref', key, value }),
-      resetDemo: () => dispatch({ type: 'reset' }),
+      threads: toThreads(state.messages),
+      takenFor: (doctorSlug) => new Set(state.bookedSlots.filter((s) => s.doctorSlug === doctorSlug).map((s) => s.key)),
+
+      async book({ profileId, doctorSlug, at, mode, reason, insurance }) {
+        if (!requireAuth()) return { error: 'Sign in to book a visit.' }
+        const targetProfile = profileId ?? profile?.id
+        if (!targetProfile) return { error: 'Add a patient profile before booking.' }
+
+        const { data, error } = await supabase
+          .from('appointments')
+          .insert({ user_id: user.id, profile_id: targetProfile, doctor_slug: doctorSlug, at, mode, reason, insurance })
+          .select()
+          .single()
+        if (error) return fail(error)
+
+        const appointment = toAppointment(data)
+        setState((prev) => ({
+          ...prev,
+          appointments: [...prev.appointments, appointment],
+          bookedSlots: [...prev.bookedSlots, { doctorSlug, key: slotKey(at) }],
+        }))
+        loadAccessLog()
+        return { appointment }
+      },
+
+      async reschedule(id, at, mode) {
+        if (!requireAuth()) return { error: 'Sign in to change a visit.' }
+        const previous = state.appointments.find((a) => a.id === id)
+        const { data, error } = await supabase
+          .from('appointments')
+          .update({ at, mode })
+          .eq('id', id)
+          .select()
+          .single()
+        if (error) return fail(error)
+
+        const appointment = toAppointment(data)
+        setState((prev) => ({
+          ...prev,
+          appointments: prev.appointments.map((a) => (a.id === id ? appointment : a)),
+          bookedSlots: [
+            ...prev.bookedSlots.filter((s) => !(previous && s.doctorSlug === previous.doctorSlug && s.key === slotKey(previous.at))),
+            { doctorSlug: appointment.doctorSlug, key: slotKey(at) },
+          ],
+        }))
+        loadAccessLog()
+        return { appointment }
+      },
+
+      async cancel(id) {
+        if (!requireAuth()) return { error: 'Sign in to change a visit.' }
+        const previous = state.appointments.find((a) => a.id === id)
+        const { error } = await supabase.from('appointments').update({ status: 'cancelled' }).eq('id', id)
+        if (error) return fail(error)
+
+        setState((prev) => ({
+          ...prev,
+          appointments: prev.appointments.map((a) => (a.id === id ? { ...a, status: 'cancelled' } : a)),
+          bookedSlots: prev.bookedSlots.filter((s) => !(previous && s.doctorSlug === previous.doctorSlug && s.key === slotKey(previous.at))),
+        }))
+        loadAccessLog()
+        return {}
+      },
+
+      async joinWaitlist(doctorSlug) {
+        if (!requireAuth()) return { error: 'Sign in to join a waitlist.' }
+        if (!profile) return { error: 'Add a patient profile first.' }
+        if (state.waitlist.some((w) => w.doctorSlug === doctorSlug && w.profileId === profile.id)) return {}
+
+        const { data, error } = await supabase
+          .from('waitlist')
+          .insert({ user_id: user.id, profile_id: profile.id, doctor_slug: doctorSlug })
+          .select()
+          .single()
+        if (error) return fail(error)
+        setState((prev) => ({ ...prev, waitlist: [...prev.waitlist, toWaitlistEntry(data)] }))
+        return {}
+      },
+
+      async leaveWaitlist(id) {
+        if (!requireAuth()) return { error: 'Sign in first.' }
+        const { error } = await supabase.from('waitlist').delete().eq('id', id)
+        if (error) return fail(error)
+        setState((prev) => ({ ...prev, waitlist: prev.waitlist.filter((w) => w.id !== id) }))
+        return {}
+      },
+
+      async sendMessage(doctorSlug, text) {
+        if (!requireAuth()) return { error: 'Sign in to message a care team.' }
+        const body = text.trim()
+        if (!body) return { error: 'Write a message first.' }
+
+        const { data, error } = await supabase
+          .from('messages')
+          .insert({ user_id: user.id, doctor_slug: doctorSlug, sender: 'you', body })
+          .select()
+          .single()
+        if (error) return fail(error)
+        setState((prev) => ({ ...prev, messages: [...prev.messages, toMessage(data)] }))
+        return {}
+      },
+
+      async switchProfile(id) {
+        patch({ activeProfileId: id })
+        await savePrefRow({ active_profile_id: id })
+      },
+
+      async dismiss(id) {
+        const dismissed = state.dismissed.includes(id) ? state.dismissed : [...state.dismissed, id]
+        patch({ dismissed })
+        await savePrefRow({ dismissed })
+      },
+
+      async rememberFollowUp(followUp) {
+        const record = { ...followUp, at: new Date().toISOString() }
+        const dismissed = state.dismissed.filter((d) => d !== 'emergency-followup')
+        patch({ followUp: record, dismissed })
+        await savePrefRow({ follow_up: record, dismissed })
+      },
+
+      async setPref(key, prefValue) {
+        patch({ prefs: { ...state.prefs, [key]: prefValue } })
+        await savePrefRow(prefsToRow({ [key]: prefValue }))
+      },
+
+      /** Deletes this account's care data. Destructive, so it asks first. */
+      async clearMyData() {
+        if (!requireAuth()) return { error: 'Sign in first.' }
+        if (!window.confirm('Delete your appointments, waitlist entries and messages? This cannot be undone.')) return {}
+
+        const results = await Promise.all([
+          supabase.from('appointments').delete().eq('user_id', user.id),
+          supabase.from('waitlist').delete().eq('user_id', user.id),
+          supabase.from('messages').delete().eq('user_id', user.id),
+        ])
+        const error = firstError(...results)
+        if (error) return fail(error)
+
+        const { slots } = await loadBookedSlots()
+        setState((prev) => ({ ...prev, appointments: [], waitlist: [], messages: [], bookedSlots: slots, followUp: null, dismissed: [] }))
+        await savePrefRow({ follow_up: null, dismissed: [] })
+        loadAccessLog()
+        return {}
+      },
     }
-  }, [state])
+  }, [state, user, navigate, location, patch, loadAccessLog, loadBookedSlots])
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }
@@ -228,7 +345,7 @@ export function useStore() {
 export function careSuggestions(store) {
   const out = []
   const { profile, upcoming, past, dismissed, prefs, followUp } = store
-  if (!prefs.aiSuggestions) return out
+  if (!prefs.aiSuggestions || !profile) return out
 
   // Kept whether or not AI suggestions stay on elsewhere in the flow: someone
   // who was sent to the ER should not have to remember the name themselves.

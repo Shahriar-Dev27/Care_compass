@@ -21,7 +21,6 @@ function Brand({ onClick }) {
 /* ── Auth-aware profile button in header ────────────────────────────────────── */
 function HeaderProfile() {
   const { user, signOut } = useAuth()
-  const store = useStore()
   const navigate = useNavigate()
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
@@ -45,7 +44,7 @@ function HeaderProfile() {
     )
   }
 
-  const displayName = user.displayName || store.profile.name
+  const displayName = user.displayName
   const initials = displayName
     .split(' ')
     .map((w) => w[0])
@@ -251,8 +250,8 @@ export function Footer() {
               <Moon size={15} aria-hidden="true" /> Dark
             </button>
           </div>
-          <button className="link-btn" onClick={store.resetDemo}>
-            Reset demo data
+          <button className="link-btn" onClick={store.clearMyData}>
+            Delete my care data
           </button>
         </div>
 

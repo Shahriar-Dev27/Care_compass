@@ -288,6 +288,26 @@
   animation: auth-shake 0.35s var(--ease);
 }
 
+/* Confirmation and reset-link messages: same shape as the error banner, calmer. */
+.auth-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 14px;
+  background: var(--ok-bg);
+  color: var(--ok-text);
+  border-radius: var(--r-sm);
+  font-size: 0.875rem;
+  line-height: 1.45;
+  margin-bottom: 16px;
+  border: 1px solid color-mix(in srgb, var(--ok) 25%, transparent);
+}
+
+.auth-notice svg {
+  flex: none;
+  margin-top: 2px;
+}
+
 @keyframes auth-shake {
   0%, 100% { transform: translateX(0); }
   20%       { transform: translateX(-5px); }

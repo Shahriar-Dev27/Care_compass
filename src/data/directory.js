@@ -420,7 +420,9 @@ export const DOCTORS = [
   }),
   doctor({
     id: 13,
-    slug: 'sofia-alvarez',
+    // Distinct from the paediatrician of the same name (id 5): slugs are the
+    // route and the appointment key, so a collision hid this clinician entirely.
+    slug: 'sofia-alvarez-endocrinology',
     name: 'Sofia Alvarez',
     credential: 'MD',
     specialty: 'Endocrinology',

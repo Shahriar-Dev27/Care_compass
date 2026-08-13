@@ -1,32 +1,37 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams, Link } from 'react-router-dom'
-import { Compass, Mail, Lock, User, ArrowRight, Eye, EyeOff, AlertCircle } from 'lucide-react'
+import { Compass, Mail, MailCheck, Lock, User, ArrowRight, Eye, EyeOff, AlertCircle } from 'lucide-react'
 import { useAuth } from '../lib/auth'
 import '../styles/auth.css'
 
-/* ── Friendly Firebase error messages ──────────────────────────────────────── */
-function friendlyError(code) {
-  switch (code) {
-    case 'auth/email-already-in-use':
+/* ── Friendly Supabase Auth error messages ─────────────────────────────────── */
+function friendlyError(error) {
+  switch (error?.code) {
+    case 'user_already_exists':
+    case 'email_exists':
       return 'That email is already registered. Try signing in instead.'
-    case 'auth/invalid-email':
-      return 'Please enter a valid email address.'
-    case 'auth/user-not-found':
-    case 'auth/wrong-password':
-    case 'auth/invalid-credential':
+    case 'validation_failed':
+      return 'Please check the email address and try again.'
+    case 'invalid_credentials':
       return 'Email or password is incorrect.'
-    case 'auth/weak-password':
+    case 'email_not_confirmed':
+      return 'Confirm your email address first — check your inbox for the link.'
+    case 'weak_password':
       return 'Password must be at least 6 characters.'
-    case 'auth/too-many-requests':
+    case 'over_request_rate_limit':
+    case 'over_email_send_rate_limit':
       return 'Too many attempts. Please wait a moment and try again.'
-    case 'auth/popup-closed-by-user':
-      return 'Sign-in popup was closed. Please try again.'
-    case 'auth/popup-blocked':
-      return 'Popup was blocked by your browser. Please allow popups for this site.'
-    case 'auth/network-request-failed':
-      return 'Network error. Please check your connection.'
+    case 'provider_disabled':
+      return 'That sign-in method is not enabled for this site yet.'
+    case 'access_denied':
+      return 'Google sign-in was cancelled.'
+    case 'bad_oauth_state':
+    case 'flow_state_expired':
+    case 'flow_state_not_found':
+      return 'That sign-in attempt expired. Please try again.'
     default:
-      return 'Something went wrong. Please try again.'
+      if (error?.message?.includes('Failed to fetch')) return 'Network error. Please check your connection.'
+      return error?.message || 'Something went wrong. Please try again.'
   }
 }
 
@@ -44,7 +49,7 @@ function GoogleLogo() {
 
 /* ── Main page ──────────────────────────────────────────────────────────────── */
 export default function Auth() {
-  const { user, signIn, signUp, signInWithGoogle } = useAuth()
+  const { user, signIn, signUp, signInWithGoogle, sendPasswordReset } = useAuth()
   const navigate = useNavigate()
   const [params] = useSearchParams()
   const next = params.get('next') || '/care'
@@ -55,6 +60,7 @@ export default function Auth() {
   const [password, setPassword] = useState('')
   const [showPw, setShowPw] = useState(false)
   const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
   const [busy, setBusy] = useState(false)
 
   // Already logged in → bounce away
@@ -62,34 +68,77 @@ export default function Auth() {
     if (user) navigate(next, { replace: true })
   }, [user, navigate, next])
 
-  const clearError = () => setError('')
+  // Google can bounce back here with a failure instead of a session: the PKCE
+  // flow puts it in the query string, email links use the hash. Without this the
+  // page looks idle and the person clicks Google again.
+  useEffect(() => {
+    const hash = new URLSearchParams(window.location.hash.slice(1))
+    const reason = params.get('error') || hash.get('error')
+    if (!reason) return
+    setError(
+      friendlyError({
+        code: params.get('error_code') || hash.get('error_code') || reason,
+        message: params.get('error_description') || hash.get('error_description'),
+      }),
+    )
+    // Drop it from the URL so a refresh does not resurrect a stale failure.
+    window.history.replaceState({}, '', `${window.location.pathname}?next=${encodeURIComponent(next)}`)
+  }, [params, next])
+
+  const clearError = () => {
+    setError('')
+    setNotice('')
+  }
 
   async function handleSubmit(e) {
     e.preventDefault()
     setBusy(true)
-    setError('')
+    clearError()
     try {
       if (mode === 'signup') {
-        await signUp(email, password, name.trim())
+        const { needsConfirmation } = await signUp(email, password, name.trim())
+        if (needsConfirmation) {
+          setNotice(`Almost there — open the confirmation link we sent to ${email}, then sign in.`)
+          setMode('login')
+          setPassword('')
+          return
+        }
       } else {
         await signIn(email, password)
       }
       navigate(next, { replace: true })
     } catch (err) {
-      setError(friendlyError(err.code))
+      setError(friendlyError(err))
     } finally {
       setBusy(false)
     }
   }
 
+  // Google sign-in leaves the page and returns to /auth, where the effect above
+  // forwards to `next`.
   async function handleGoogle() {
     setBusy(true)
-    setError('')
+    clearError()
     try {
-      await signInWithGoogle()
-      navigate(next, { replace: true })
+      await signInWithGoogle(next)
     } catch (err) {
-      setError(friendlyError(err.code))
+      setError(friendlyError(err))
+      setBusy(false)
+    }
+  }
+
+  async function handleForgotPassword() {
+    if (!email.trim()) {
+      setError('Enter your email address first, then choose “Forgot password?”.')
+      return
+    }
+    setBusy(true)
+    clearError()
+    try {
+      await sendPasswordReset(email.trim())
+      setNotice(`If an account exists for ${email.trim()}, a reset link is on its way.`)
+    } catch (err) {
+      setError(friendlyError(err))
     } finally {
       setBusy(false)
     }
@@ -97,7 +146,7 @@ export default function Auth() {
 
   function switchMode(m) {
     setMode(m)
-    setError('')
+    clearError()
   }
 
   return (
@@ -216,6 +265,13 @@ export default function Auth() {
               </div>
             )}
 
+            {notice && (
+              <div className="auth-notice" role="status">
+                <MailCheck size={15} />
+                {notice}
+              </div>
+            )}
+
             {/* Form */}
             <form className="auth-form" onSubmit={handleSubmit} noValidate>
 
@@ -257,7 +313,7 @@ export default function Auth() {
                 <div className="auth-field-row">
                   <label htmlFor="auth-password">Password</label>
                   {mode === 'login' && (
-                    <button type="button" className="link-btn auth-forgot">
+                    <button type="button" className="link-btn auth-forgot" onClick={handleForgotPassword} disabled={busy}>
                       Forgot password?
                     </button>
                   )}

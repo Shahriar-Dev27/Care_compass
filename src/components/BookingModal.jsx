@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import { CalendarDays, CalendarPlus, Check, ChevronLeft, LockKeyhole, MapPin, ShieldCheck, Video, X } from 'lucide-react'
 import { Avatar } from './Bits'
 import { downloadIcs, useStore } from '../lib/store'
+import { useAuth } from '../lib/auth'
 import { formatDay, formatSlot, formatTime, openDays } from '../lib/schedule'
 import { lockScroll } from '../lib/motion'
 import { INSURANCE } from '../data/directory'
@@ -12,15 +13,17 @@ const FOCUSABLE = 'a[href], button:not([disabled]), input, select, textarea, [ta
 
 export default function BookingModal({ doctor, slot: preselect = null, appointment = null, onClose }) {
   const store = useStore()
+  const { user } = useAuth()
   const rescheduling = Boolean(appointment)
   const [step, setStep] = useState(1)
   const [slot, setSlot] = useState(preselect)
   const [dayKeySel, setDayKeySel] = useState(preselect?.key ?? null)
   const [mode, setMode] = useState(appointment?.mode ?? (doctor.telehealth ? 'video' : 'in-person'))
   const [reason, setReason] = useState(appointment?.reason ?? '')
-  const [insurance, setInsurance] = useState(store.profile.insurance)
-  const [forProfile, setForProfile] = useState(appointment?.profileId ?? store.profile.id)
+  const [insurance, setInsurance] = useState(store.profile?.insurance ?? INSURANCE[0])
+  const [forProfile, setForProfile] = useState(appointment?.profileId ?? store.profile?.id ?? '')
   const [error, setError] = useState('')
+  const [saving, setSaving] = useState(false)
   const [booked, setBooked] = useState(null)
   const dialog = useRef(null)
   const opener = useRef(null)
@@ -61,7 +64,16 @@ export default function BookingModal({ doctor, slot: preselect = null, appointme
     return () => document.removeEventListener('keydown', onKey)
   }, [onClose])
 
-  const confirm = () => {
+  // The active profile can land a moment after the modal opens, right after a
+  // sign-in redirect.
+  useEffect(() => {
+    if (!forProfile && store.profile) {
+      setForProfile(store.profile.id)
+      if (store.profile.insurance) setInsurance(store.profile.insurance)
+    }
+  }, [store.profile, forProfile])
+
+  const confirm = async () => {
     if (!slot) {
       setError('Choose a day and time to continue.')
       setStep(1)
@@ -72,24 +84,23 @@ export default function BookingModal({ doctor, slot: preselect = null, appointme
       return
     }
     setError('')
-    if (rescheduling) {
-      store.reschedule(appointment.id, slot.at.toISOString(), mode)
-      setBooked({ ...appointment, at: slot.at.toISOString(), mode })
-    } else {
-      const record = {
-        id: Math.random().toString(36).slice(2, 10),
-        profileId: forProfile,
-        doctorSlug: doctor.slug,
-        at: slot.at.toISOString(),
-        mode,
-        reason: reason.trim(),
-        insurance,
-        status: 'booked',
-        createdAt: new Date().toISOString(),
-      }
-      store.book(record)
-      setBooked(record)
+    setSaving(true)
+    const result = rescheduling
+      ? await store.reschedule(appointment.id, slot.at.toISOString(), mode)
+      : await store.book({
+          profileId: forProfile,
+          doctorSlug: doctor.slug,
+          at: slot.at.toISOString(),
+          mode,
+          reason: reason.trim(),
+          insurance,
+        })
+    setSaving(false)
+    if (result.error) {
+      setError(result.error)
+      return
     }
+    setBooked(result.appointment)
     setStep(3)
   }
 
@@ -226,16 +237,23 @@ export default function BookingModal({ doctor, slot: preselect = null, appointme
                 </button>
               </div>
 
-              <div className="field">
-                <label htmlFor="booking-for">Who is this visit for?</label>
-                <select id="booking-for" value={forProfile} onChange={(e) => setForProfile(e.target.value)}>
-                  {store.profiles.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name} ({p.relation})
-                    </option>
-                  ))}
-                </select>
-              </div>
+              {user ? (
+                <div className="field">
+                  <label htmlFor="booking-for">Who is this visit for?</label>
+                  <select id="booking-for" value={forProfile} onChange={(e) => setForProfile(e.target.value)}>
+                    {store.profiles.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name} ({p.relation})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : (
+                <p className="policy-note">
+                  <LockKeyhole size={16} aria-hidden="true" />
+                  Appointments are kept in your health record, so you will be asked to sign in before this is confirmed.
+                </p>
+              )}
 
               <div className={`field ${error && reason.trim().length < 4 ? 'has-error' : ''}`}>
                 <label htmlFor="booking-reason">Reason for visit</label>
@@ -292,14 +310,14 @@ export default function BookingModal({ doctor, slot: preselect = null, appointme
             {step === 1 ? (
               <button
                 className="btn btn-accent"
-                disabled={!slot}
+                disabled={!slot || saving}
                 onClick={() => (rescheduling ? confirm() : setStep(2))}
               >
-                {rescheduling ? 'Confirm new time' : 'Continue'}
+                {rescheduling ? (saving ? 'Moving…' : 'Confirm new time') : 'Continue'}
               </button>
             ) : (
-              <button className="btn btn-accent" onClick={confirm}>
-                <LockKeyhole size={17} /> Confirm booking
+              <button className="btn btn-accent" onClick={confirm} disabled={saving}>
+                <LockKeyhole size={17} /> {saving ? 'Confirming…' : user ? 'Confirm booking' : 'Sign in and confirm'}
               </button>
             )}
           </div>
