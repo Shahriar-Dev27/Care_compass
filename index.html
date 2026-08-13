@@ -13,7 +13,8 @@
     <script>
       // Applied before first paint so a saved dark theme or larger text does not flash.
       try {
-        var saved = JSON.parse(localStorage.getItem('carecompass.v1') || '{}')
+        // Key must match LOCAL_KEY in src/lib/store.jsx.
+        var saved = JSON.parse(localStorage.getItem('carecompass.prefs.v2') || '{}')
         document.documentElement.dataset.theme = saved.prefs?.theme || 'light'
         document.documentElement.dataset.scale = saved.prefs?.textScale || 'base'
       } catch (e) {

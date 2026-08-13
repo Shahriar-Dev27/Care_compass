@@ -364,6 +364,28 @@ button {
   color: var(--brand-text);
 }
 
+.pilot-notice {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 12px 14px;
+  border-radius: var(--r-md);
+  background: var(--warn-bg);
+  border: 1px dashed var(--warn);
+  color: var(--ink-2);
+  font-size: 0.9rem;
+}
+
+.pilot-notice svg {
+  flex: none;
+  color: var(--warn-text);
+  margin-top: 2px;
+}
+
+.pilot-notice b {
+  color: var(--warn-text);
+}
+
 .ai-tag {
   display: inline-flex;
   align-items: center;
