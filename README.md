@@ -176,35 +176,6 @@ supabase/migrations/    Database schema and security migrations
 - Audit logging is scaffolded but not enabled for this pilot; it must be enabled before using real patient data.
 - Review content and clinician availability are demonstrations, not live healthcare claims.
 
-## How to add a picture to this README
-
-Create an image folder, for example `docs/images`, and place the picture there:
-
-```text
-docs/images/care-compass-home.png
-```
-
-Then add this Markdown wherever you want the picture to appear:
-
-```md
-![CareCompass home page](docs/images/care-compass-home.png)
-```
-
-Use a useful description inside the square brackets so screen-reader users know what the image shows. Use forward slashes in README paths, even on Windows, and commit the image with the README.
-
-For a hosted picture, use its full URL:
-
-```md
-![CareCompass AI assistant](https://example.com/care-compass-assistant.png)
-```
-
-To control the displayed width, GitHub READMEs also support an HTML image tag:
-
-```html
-<img src="docs/images/care-compass-assistant.png" alt="CareCompass AI assistant" width="720">
-```
-
-PNG is usually best for interface screenshots, while JPG or WebP is better for photographs. Avoid spaces in filenames; use names such as `ai-assistant-chat.png`.
 
 ## Production checklist
 
