@@ -2,6 +2,8 @@
 
 CareCompass is a patient-first healthcare navigation and appointment platform. It helps people describe what they are experiencing, find an appropriate clinician, compare availability and access needs, book a visit, and manage follow-up care in one place.
 
+![CareCompass homepage](docs/Image/screenshot.png)
+
 > [!IMPORTANT]
 > CareCompass provides navigation guidance, not medical diagnoses. If someone may be experiencing an emergency, they should contact their local emergency service immediately.
 
