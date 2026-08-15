@@ -1,5 +1,5 @@
 import { Navigate, useLocation } from 'react-router-dom'
-import { useAuth } from '../features/auth/AuthProvider'
+import { useAuth } from './AuthProvider'
 import { Compass } from 'lucide-react'
 
 export default function ProtectedRoute({ children }) {

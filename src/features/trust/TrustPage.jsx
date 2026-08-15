@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import { Accessibility, AlertTriangle, Eye, Headphones, Languages, LockKeyhole, ShieldCheck, Sparkles } from 'lucide-react'
-import { PilotNotice } from '../ui'
-import { useReveal } from '../lib/motion'
+import { PilotNotice } from '../../ui'
+import { useReveal } from '../../lib/motion'
 
 const FAQ = [
   {

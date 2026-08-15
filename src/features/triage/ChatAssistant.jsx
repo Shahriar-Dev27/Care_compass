@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Info, MessageCircle, Send, Sparkles, X } from 'lucide-react'
-import { findRedFlags } from '../domain/triage'
-import { specialtyFor } from '../domain/search'
-import { specialtyLabel } from '../domain/taxonomy'
-import { bestIn, bySlug } from '../features/directory/api/doctors'
-import { useCare } from '../features/care/CareDataProvider'
-import { usePrefs } from '../features/prefs/PrefsProvider'
-import { formatSlot } from '../domain/schedule'
+import { findRedFlags } from '../../domain/triage'
+import { specialtyFor } from '../../domain/search'
+import { specialtyLabel } from '../../domain/taxonomy'
+import { bestIn, bySlug } from '../directory/api/doctors'
+import { useCare } from '../care/CareDataProvider'
+import { usePrefs } from '../prefs/PrefsProvider'
+import { formatSlot } from '../../domain/schedule'
 
 const GREETING = {
   from: 'ai',

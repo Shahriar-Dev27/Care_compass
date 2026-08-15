@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { CalendarDays, CalendarPlus, Check, ChevronLeft, LockKeyhole, MapPin, ShieldCheck, Video, X } from 'lucide-react'
-import { Avatar, Modal } from '../ui'
-import { downloadIcs } from '../features/booking/ics'
-import { useCare } from '../features/care/CareDataProvider'
-import { useAuth } from '../features/auth/AuthProvider'
-import { formatDay, formatSlot, formatTime, openDays } from '../domain/schedule'
-import { INSURANCE } from '../domain/taxonomy'
+import { Avatar, Modal } from '../../ui'
+import { downloadIcs } from './ics'
+import { useCare } from '../care/CareDataProvider'
+import { useAuth } from '../auth/AuthProvider'
+import { formatDay, formatSlot, formatTime, openDays } from '../../domain/schedule'
+import { INSURANCE } from '../../domain/taxonomy'
 
 export default function BookingModal({ doctor, slot: preselect = null, appointment = null, onClose }) {
   const care = useCare()

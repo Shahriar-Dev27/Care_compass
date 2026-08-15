@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import { BadgeCheck, CalendarClock, Globe, MapPin, ShieldCheck, Video } from 'lucide-react'
-import { Avatar, AiTag, Stars } from '../ui'
-import { formatSlot, formatTime, openDays } from '../domain/schedule'
+import { Avatar, AiTag, Stars } from '../../ui'
+import { formatSlot, formatTime, openDays } from '../../domain/schedule'
 
 export default function DoctorCard({ doctor, next, taken, insurance, onBook, onWaitlist, waitlisted }) {
   const quickSlots = openDays(doctor, taken, 1)[0]?.slots.slice(0, 3) ?? []

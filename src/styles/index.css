@@ -1,14 +1,14 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 @import './tokens.css';
 @import './base.css';
-@import './select.css';
-@import './shell.css';
-@import './home.css';
-@import './find.css';
-@import './assistant.css';
-@import './care.css';
-@import './booking.css';
-@import './auth.css';
+@import '../ui/select.css';
+@import '../app/shell.css';
+@import '../features/home/home.css';
+@import '../features/directory/directory.css';
+@import '../features/triage/triage.css';
+@import '../features/care/care.css';
+@import '../features/booking/booking.css';
+@import '../features/auth/auth.css';
 
 #main {
   padding-top: var(--header-h);

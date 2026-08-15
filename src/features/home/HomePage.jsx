@@ -15,13 +15,13 @@ import {
   Sparkles,
   Stethoscope,
 } from 'lucide-react'
-import SearchField from '../components/SearchField'
-import { Avatar, AiTag, Stars } from '../ui'
-import { SPECIALTIES } from '../domain/taxonomy'
-import { DOCTORS } from '../features/directory/api/doctors'
-import { daySlots, formatSlot, nextAvailable } from '../domain/schedule'
-import { gsap, reducedMotion, useReveal } from '../lib/motion'
-import { useCare } from '../features/care/CareDataProvider'
+import SearchField from '../directory/SearchField'
+import { Avatar, AiTag, Stars } from '../../ui'
+import { SPECIALTIES } from '../../domain/taxonomy'
+import { DOCTORS } from '../directory/api/doctors'
+import { daySlots, formatSlot, nextAvailable } from '../../domain/schedule'
+import { gsap, reducedMotion, useReveal } from '../../lib/motion'
+import { useCare } from '../care/CareDataProvider'
 
 const STEPS = [
   {

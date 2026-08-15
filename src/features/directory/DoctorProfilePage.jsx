@@ -13,12 +13,12 @@ import {
   Sparkles,
   Video,
 } from 'lucide-react'
-import { Avatar, AiNote, Stars } from '../ui'
-import BookingModal from '../components/BookingModal'
-import { bySlug } from '../features/directory/api/doctors'
-import { formatDay, formatTime, openDays } from '../domain/schedule'
-import { useCare } from '../features/care/CareDataProvider'
-import { useReveal } from '../lib/motion'
+import { Avatar, AiNote, Stars } from '../../ui'
+import BookingModal from '../booking/BookingModal'
+import { bySlug } from './api/doctors'
+import { formatDay, formatTime, openDays } from '../../domain/schedule'
+import { useCare } from '../care/CareDataProvider'
+import { useReveal } from '../../lib/motion'
 
 export default function DoctorProfile() {
   const { slug } = useParams()

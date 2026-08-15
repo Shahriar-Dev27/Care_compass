@@ -1,10 +1,10 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Search, Stethoscope, HeartPulse, UserRound } from 'lucide-react'
-import { suggest } from '../domain/search'
-import { INSURANCE } from '../domain/taxonomy'
-import { DOCTORS } from '../features/directory/api/doctors'
-import { Select } from '../ui'
+import { suggest } from '../../domain/search'
+import { INSURANCE } from '../../domain/taxonomy'
+import { DOCTORS } from './api/doctors'
+import { Select } from '../../ui'
 
 const KIND_ICON = { Specialty: Stethoscope, Concern: HeartPulse, Doctor: UserRound }
 const INSURANCE_OPTIONS = [

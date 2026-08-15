@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useSearchParams, useNavigate } from 'react-router-dom'
-import { useAuth } from '../features/auth/AuthProvider'
+import { useAuth } from '../auth/AuthProvider'
 import {
   Activity,
   ArrowRight,
@@ -23,15 +23,15 @@ import {
   LogOut,
   X,
 } from 'lucide-react'
-import { Avatar, AiTag, Empty, Modal } from '../ui'
-import BookingModal from '../components/BookingModal'
-import { careSuggestions } from '../features/care/careSuggestions'
-import { downloadIcs } from '../features/booking/ics'
-import { useCare } from '../features/care/CareDataProvider'
-import { usePrefs } from '../features/prefs/PrefsProvider'
-import { countdown, formatSlot } from '../domain/schedule'
-import { bySlug } from '../features/directory/api/doctors'
-import { scrollToId, useReveal } from '../lib/motion'
+import { Avatar, AiTag, Empty, Modal } from '../../ui'
+import BookingModal from '../booking/BookingModal'
+import { careSuggestions } from './careSuggestions'
+import { downloadIcs } from '../booking/ics'
+import { useCare } from './CareDataProvider'
+import { usePrefs } from '../prefs/PrefsProvider'
+import { countdown, formatSlot } from '../../domain/schedule'
+import { bySlug } from '../directory/api/doctors'
+import { scrollToId, useReveal } from '../../lib/motion'
 
 const TABS = [
   ['upcoming', 'Upcoming'],

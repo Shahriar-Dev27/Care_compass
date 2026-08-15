@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { Compass, Mail, MailCheck, Lock, User, ArrowRight, Eye, EyeOff, AlertCircle } from 'lucide-react'
-import { useAuth } from '../features/auth/AuthProvider'
-import '../styles/auth.css'
+import { useAuth } from './AuthProvider'
 
 /* ── Friendly Supabase Auth error messages ─────────────────────────────────── */
 function friendlyError(error) {
